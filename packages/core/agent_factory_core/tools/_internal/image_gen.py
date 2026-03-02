@@ -601,17 +601,12 @@ def generate_product_showcase(
     print(f"   Product image: {product_image_path}")
     print(f"   Style: {showcase_style}, Brand: {brand_name}")
 
-    # Resolve product image path
+    # Resolve product image path - use CWD where generated/uploads dirs exist
     resolved_product_path = product_image_path
-    if product_image_path.startswith("/uploads/"):
-        project_root = Path(__file__).parent.parent
-        resolved_product_path = str(project_root / product_image_path.lstrip("/"))
-    elif product_image_path.startswith("/generated/"):
-        project_root = Path(__file__).parent.parent
-        resolved_product_path = str(project_root / product_image_path.lstrip("/"))
+    if product_image_path.startswith(("/uploads/", "/generated/")):
+        resolved_product_path = str(Path.cwd() / product_image_path.lstrip("/"))
     elif not os.path.isabs(product_image_path):
-        project_root = Path(__file__).parent.parent
-        resolved_product_path = str(project_root / product_image_path)
+        resolved_product_path = str(Path.cwd() / product_image_path)
 
     if not os.path.exists(resolved_product_path):
         return {
@@ -997,12 +992,10 @@ def animate_image(
         # Convert web URL path to filesystem path if needed
         resolved_path = image_path
         if image_path.startswith("/generated/"):
-            project_root = Path(__file__).parent.parent
-            resolved_path = str(project_root / image_path.lstrip("/"))
+            resolved_path = str(Path.cwd() / image_path.lstrip("/"))
             print(f"   📁 Resolved path: {resolved_path}")
         elif not os.path.isabs(image_path):
-            project_root = Path(__file__).parent.parent
-            resolved_path = str(project_root / image_path)
+            resolved_path = str(Path.cwd() / image_path)
             print(f"   📁 Resolved relative path: {resolved_path}")
 
         if not os.path.exists(resolved_path):

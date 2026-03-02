@@ -95,14 +95,13 @@ def animate_image(
         client = _get_client()
 
         # Convert web URL path to filesystem path if needed
+        # Use CWD (where server runs) not package dir for relative paths
         resolved_path = image_path
         if image_path.startswith("/generated/"):
-            project_root = Path(__file__).parent.parent
-            resolved_path = str(project_root / image_path.lstrip("/"))
+            resolved_path = str(Path.cwd() / image_path.lstrip("/"))
             print(f"   📁 Resolved path: {resolved_path}")
         elif not os.path.isabs(image_path):
-            project_root = Path(__file__).parent.parent
-            resolved_path = str(project_root / image_path)
+            resolved_path = str(Path.cwd() / image_path)
             print(f"   📁 Resolved relative path: {resolved_path}")
 
         if not os.path.exists(resolved_path):
@@ -128,8 +127,8 @@ GUIDELINES:
         video_model = os.getenv("VIDEO_MODEL", "veo-3.1-generate-preview")
         print(f"   Model: {video_model}")
 
-        # Clamp duration to valid range (5-8 seconds)
-        duration_seconds = max(5, min(8, duration_seconds))
+        # Clamp duration to valid range (6-8 seconds for image-to-video)
+        duration_seconds = max(6, min(8, duration_seconds))
 
         try:
             print("   📤 Starting video generation with Veo 3.1...")
@@ -282,8 +281,8 @@ def generate_video_from_text(
         video_model = os.getenv("VIDEO_MODEL", "veo-3.1-generate-preview")
         print(f"   Model: {video_model}")
 
-        # Clamp duration to valid range (5-8 seconds)
-        duration_seconds = max(5, min(8, duration_seconds))
+        # Clamp duration to valid range (6-8 seconds for image-to-video)
+        duration_seconds = max(6, min(8, duration_seconds))
 
         try:
             print("   📤 Starting video generation with Veo 3.1...")

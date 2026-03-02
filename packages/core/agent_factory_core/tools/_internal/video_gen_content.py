@@ -130,8 +130,6 @@ def _add_branding_to_video(
         return video_path
 
     try:
-        project_root = Path(__file__).parent.parent
-
         # Resolve logo path
         resolved_logo = None
         if logo_path:
@@ -139,10 +137,9 @@ def _add_branding_to_video(
             if os.path.exists(logo_path):
                 resolved_logo = logo_path
             elif logo_path.startswith("/"):
-                # Try resolving as relative to project root
-                resolved_logo = str(project_root / logo_path.lstrip("/"))
+                resolved_logo = str(Path.cwd() / logo_path.lstrip("/"))
             else:
-                resolved_logo = str(project_root / logo_path)
+                resolved_logo = str(Path.cwd() / logo_path)
 
             if not os.path.exists(resolved_logo):
                 print(f"⚠️ Logo not found at {resolved_logo}")
@@ -256,17 +253,11 @@ def _add_branding_to_video(
 def _resolve_image_path(image_path: str) -> str:
     """Convert web URL path to filesystem path if needed."""
     resolved_path = image_path
-    project_root = Path(__file__).parent.parent
 
-    if image_path.startswith("/generated/"):
-        resolved_path = str(project_root / image_path.lstrip("/"))
-    elif image_path.startswith("/uploads/"):
-        resolved_path = str(project_root / image_path.lstrip("/"))
-    elif image_path.startswith("/static/"):
-        # Handle static preset images
-        resolved_path = str(project_root / image_path.lstrip("/"))
+    if image_path.startswith(("/generated/", "/uploads/", "/static/")):
+        resolved_path = str(Path.cwd() / image_path.lstrip("/"))
     elif not os.path.isabs(image_path):
-        resolved_path = str(project_root / image_path)
+        resolved_path = str(Path.cwd() / image_path)
 
     return resolved_path
 
