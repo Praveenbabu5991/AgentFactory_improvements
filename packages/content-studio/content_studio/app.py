@@ -82,7 +82,7 @@ async def chat_stream(request: ChatRequest):
                 brand = att.get("config", {})
                 break
             elif att_type == "logo":
-                brand["logo_path"] = att.get("full_path", att.get("path", ""))
+                brand["logo_path"] = att.get("full_path") or att.get("path") or ""
                 colors = att.get("colors", {})
                 if colors:
                     brand["colors"] = [colors.get("dominant", "")]

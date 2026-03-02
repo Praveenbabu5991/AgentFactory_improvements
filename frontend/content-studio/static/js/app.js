@@ -29,7 +29,7 @@ class ContentStudioApp {
             logoPath: null,
             logoFilename: null,
             brandColors: null,
-            selectedPreset: null,
+            // selectedPreset removed - presets no longer supported
             selectedPalette: null,
             referenceImages: [],
             userImages: [],  // Images user wants included in posts (with usage intent)
@@ -63,69 +63,9 @@ class ContentStudioApp {
             monochrome: { dominant: '#1A1A1A', palette: ['#1A1A1A', '#4A4A4A', '#7A7A7A', '#DADADA', '#F5F5F5'] }
         };
         
-        // Preset configurations - logoFullPath and referenceImages will be set dynamically from server
-        this.presets = {
-            socialbunkr: {
-                name: 'SocialBunkr',
-                industry: 'Travel & Hospitality',
-                logo: '/static/presets/socialbunkr-logo.jpeg',
-                logoFullPath: null,
-                colors: { dominant: '#FF6B35', palette: ['#FF6B35', '#F7C59F', '#2EC4B6', '#011627', '#FDFFFC'] },
-                referenceImages: [], // Will be loaded from server
-                userImages: [{ path: '/static/presets/socialbunkr-refs/stay.jpeg', usage_intent: 'product_focus' }]
-            },
-            hylancer: {
-                name: 'Hylancer',
-                industry: 'Technology',
-                logo: '/static/presets/hylancer-logo.jpeg',
-                logoFullPath: null,
-                // Hylancer brand: Yellow (#F7C001), Black, White - illustrated style
-                colors: { dominant: '#F7C001', palette: ['#F7C001', '#1A1A1A', '#FFFFFF', '#2D2D2D', '#FFE066'] },
-                referenceImages: [] // Will be loaded from server
-            },
-            technova: {
-                name: 'TechNova',
-                industry: 'Technology',
-                logo: null,
-                logoFullPath: null,
-                colors: { dominant: '#0066FF', palette: ['#0066FF', '#00AAFF', '#FFFFFF', '#1A1A2E', '#E0E7FF'] },
-                referenceImages: []
-            }
-        };
-        
-        // Load preset logo paths from server
-        this.loadPresetPaths();
-        
         this.initElements();
         this.initEventListeners();
         this.initSession();
-    }
-    
-    async loadPresetPaths() {
-        // Get the actual filesystem paths for preset logos and reference images from server
-        try {
-            const response = await fetch('/preset-paths');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.presets) {
-                    for (const [key, value] of Object.entries(data.presets)) {
-                        if (this.presets[key]) {
-                            // Set logo path
-                            if (value.logo_full_path) {
-                                this.presets[key].logoFullPath = value.logo_full_path;
-                            }
-                            // Set reference images
-                            if (value.reference_images && value.reference_images.length > 0) {
-                                this.presets[key].referenceImages = value.reference_images;
-                                console.log(`Loaded ${value.reference_images.length} reference images for ${key}`);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Could not load preset paths:', error);
-        }
     }
     
     initElements() {
@@ -143,7 +83,6 @@ class ContentStudioApp {
         
         // Brand form elements
         this.brandForm = document.getElementById('brandForm');
-        this.presetCards = document.querySelectorAll('.preset-card');
         this.uploadZone = document.getElementById('uploadZone');
         this.logoInput = document.getElementById('logoInput');
         this.uploadContent = document.getElementById('uploadContent');
@@ -227,11 +166,6 @@ class ContentStudioApp {
             }
         });
         this.chatInput.addEventListener('input', () => this.resizeTextarea());
-        
-        // Presets
-        this.presetCards.forEach(card => {
-            card.addEventListener('click', () => this.selectPreset(card.dataset.preset));
-        });
         
         // Logo upload
         this.uploadZone.addEventListener('click', () => this.logoInput.click());
@@ -498,91 +432,6 @@ class ContentStudioApp {
         this.brandTab.classList.toggle('active', tabName === 'brand');
     }
     
-    selectPreset(presetId) {
-        const preset = this.presets[presetId];
-        if (!preset) return;
-        
-        // Toggle selection
-        if (this.brandConfig.selectedPreset === presetId) {
-            // Deselect
-            this.brandConfig.selectedPreset = null;
-            this.presetCards.forEach(card => card.classList.remove('active'));
-            this.companyNameInput.value = '';
-            this.industrySelect.value = '';
-            this.clearLogo();
-            this.brandConfig.referenceImages = [];
-            this.renderReferencePreviews();
-            return;
-        }
-        
-        this.brandConfig.selectedPreset = presetId;
-        
-        // Update UI
-        this.presetCards.forEach(card => {
-            card.classList.toggle('active', card.dataset.preset === presetId);
-        });
-        
-        // Fill form
-        this.companyNameInput.value = preset.name;
-        this.industrySelect.value = preset.industry;
-        this.brandConfig.companyName = preset.name;
-        this.brandConfig.industry = preset.industry;
-        this.brandConfig.brandColors = preset.colors;
-        
-        // Show logo preview if preset has logo
-        if (preset.logo) {
-            this.logoPreview.src = preset.logo;
-            this.uploadContent.hidden = true;
-            this.uploadPreview.hidden = false;
-            this.brandConfig.logoPath = preset.logo;
-            this.brandConfig.logoFullPath = preset.logoFullPath;  // Use the resolved full path
-            this.brandConfig.logoFilename = `preset:${presetId}`;
-        }
-        
-        // Show colors
-        this.colorExtraction.hidden = false;
-        this.extractionLoading.hidden = true;
-        this.colorPalette.hidden = false;
-        this.displayColors(preset.colors);
-        
-        // Load preset reference images if available
-        if (preset.referenceImages && preset.referenceImages.length > 0) {
-            this.brandConfig.referenceImages = preset.referenceImages.map((ref, index) => ({
-                id: `preset-ref-${index}`,
-                dataUrl: ref.url,
-                fullPath: ref.full_path,
-                uploading: false,
-                isPreset: true
-            }));
-            this.renderReferencePreviews();
-            console.log(`Loaded ${preset.referenceImages.length} reference images for ${presetId}`);
-        } else {
-            this.brandConfig.referenceImages = [];
-            this.renderReferencePreviews();
-        }
-
-        // Load preset user images if available (for product/post images)
-        if (preset.userImages && preset.userImages.length > 0) {
-            this.brandConfig.userImages = preset.userImages.map((img, index) => ({
-                id: `preset-user-${index}`,
-                dataUrl: img.path,
-                fullPath: img.path,
-                path: img.path,
-                usage_intent: img.usage_intent || 'product_focus',
-                uploading: false,
-                isPreset: true
-            }));
-            this.renderUserImagesPreviews();
-            console.log(`Loaded ${preset.userImages.length} user images for ${presetId}`);
-        } else {
-            this.brandConfig.userImages = [];
-            this.renderUserImagesPreviews();
-        }
-        
-        // Deselect palette options
-        this.paletteOptions.forEach(opt => opt.classList.remove('selected'));
-    }
-    
     async handleLogoSelect(event) {
         const file = event.target.files[0];
         if (file) {
@@ -591,10 +440,6 @@ class ContentStudioApp {
     }
     
     async uploadLogo(file) {
-        // Clear preset
-        this.brandConfig.selectedPreset = null;
-        this.presetCards.forEach(card => card.classList.remove('active'));
-        
         // Show preview
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1541,6 +1386,7 @@ class ContentStudioApp {
         let messageElement = null;
         let firstContentReceived = false;
         let lastStructuredResponse = null;
+        let suppressText = false; // When true, skip rendering streamed text (format_response_for_user will handle it)
 
         while (true) {
             const { done, value } = await reader.read();
@@ -1562,6 +1408,9 @@ class ContentStudioApp {
                                 firstContentReceived = true;
                                 this.hideProcessingIndicator();
                             }
+                            // If we already captured a structured response, suppress further text
+                            // to avoid showing duplicate text above choice buttons
+                            if (suppressText) continue;
                             assistantMessage += data.content;
                             if (!messageElement) {
                                 messageElement = this.addMessage('', 'assistant', true);
@@ -1577,10 +1426,34 @@ class ContentStudioApp {
                             // Capture structured JSON from format_response_for_user
                             if (data.tool === 'format_response_for_user' && data.content) {
                                 try {
-                                    // Backend extracts .content from ToolMessage, so this is the raw JSON string
                                     lastStructuredResponse = JSON.parse(data.content);
+                                    // Suppress any further streamed text since we'll render from structured response
+                                    suppressText = true;
                                 } catch (parseErr) {
                                     console.log('Could not parse format_response_for_user output:', parseErr);
+                                }
+                            }
+                            // Capture images from generate_complete_post or generate_post_image
+                            if ((data.tool === 'generate_complete_post' || data.tool === 'generate_post_image') && data.content) {
+                                try {
+                                    const toolResult = JSON.parse(data.content);
+                                    const imgPath = toolResult.image_path || toolResult.image || '';
+                                    const caption = toolResult.caption || '';
+                                    const hashtags = toolResult.hashtags || [];
+                                    if (imgPath) {
+                                        // Sanitize to get canonical path for dedup
+                                        const sanitized = this.sanitizeImagePath(imgPath);
+                                        if (sanitized && !this.generatedImages.includes(sanitized)) {
+                                            this.generatedImages.push(sanitized);
+                                            if (caption || (hashtags && hashtags.length > 0)) {
+                                                this.addImageToGalleryWithCaption(sanitized, caption, hashtags);
+                                            } else {
+                                                this.addImageToGallery(sanitized);
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    // Not JSON or no image - that's fine
                                 }
                             }
                         } else if (data.type === 'error') {
@@ -1590,7 +1463,6 @@ class ContentStudioApp {
                                 this.hideProcessingIndicator();
                             }
                             const errorMsg = data.message || 'An unexpected error occurred.';
-                            // Check for rate limit errors
                             let displayMsg;
                             if (errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
                                 displayMsg = 'The AI service is temporarily busy (rate limit reached). Please wait a minute and try again.';
@@ -1603,6 +1475,9 @@ class ContentStudioApp {
                             assistantMessage = displayMsg;
                             this.updateMessage(messageElement, displayMsg);
                         } else if (data.type === 'done') {
+                            // Always hide processing indicator on done
+                            this.hideProcessingIndicator();
+
                             // Prefer structured response captured from tool_end
                             let structuredResponse = lastStructuredResponse;
 
@@ -1612,6 +1487,10 @@ class ContentStudioApp {
                             }
 
                             if (structuredResponse) {
+                                // If text was suppressed and no message element exists, create one now
+                                if (!messageElement) {
+                                    messageElement = this.addMessage('', 'assistant', true);
+                                }
                                 // Handle structured response with choices
                                 this.handleStructuredResponse(structuredResponse, messageElement);
                             } else {
@@ -1639,10 +1518,8 @@ class ContentStudioApp {
             }
         }
 
-        // If no content was received, hide processing indicator
-        if (!firstContentReceived) {
-            this.hideProcessingIndicator();
-        }
+        // Always ensure processing indicator is hidden when stream ends
+        this.hideProcessingIndicator();
     }
     
     addMessage(text, role, isStreaming = false, isPreformatted = false) {
@@ -1696,27 +1573,28 @@ class ContentStudioApp {
     
     formatMessage(text) {
         if (!text) return '';
-        
-        // Skip if already contains image-link (already formatted)
-        if (text.includes('class="image-link"')) {
+
+        // Skip if already contains inline image or image-link (already formatted)
+        if (text.includes('class="image-link"') || text.includes('class="chat-inline-image"')) {
             return text;
         }
-        
+
         // Process image links FIRST (before code blocks), handling various formats:
         // - /generated/file.png
-        // - generated/file.png  
+        // - generated/file.png
         // - `generated/file.png`
         // - `/generated/file.png`
         let formatted = text
             // Remove backticks around image paths first
-            .replace(/`((?:\/)?generated\/[^\s\`]+\.png)`/g, '$1');
-        
-        // Replace image paths with clickable links - handle all formats
-        // Match: /generated/xxx.png or generated/xxx.png (not already in href or data-image)
-        formatted = formatted.replace(/(?<!["\=\/])(?:\/)?generated\/([a-zA-Z0-9_-]+\.png)/g, (match, filename) => {
-            return `<a href="/generated/${filename}" class="image-link" data-image="/generated/${filename}">📷 View Image</a>`;
-        });
-        
+            .replace(/`((?:\/)?generated\/[^\s\`]+\.(?:png|jpg|jpeg))`/g, '$1');
+
+        // Replace image paths with inline images (not text links)
+        // Match: /generated/xxx.png or generated/xxx.png (not already in src or data-image)
+        formatted = formatted.replace(
+            /(?<!["\=\/])(?:\/)?generated\/([a-zA-Z0-9_-]+\.(?:png|jpg|jpeg))/g,
+            (match, filename) => `<div class="chat-inline-image" data-image="/generated/${filename}"><img src="/generated/${filename}" alt="Generated content" loading="lazy"></div>`
+        );
+
         // Then process other formatting
         return formatted
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -2480,13 +2358,22 @@ class ContentStudioApp {
             this.displayHashtags(hashtags);
         }
         
-        // Add click handlers for image links
+        // Add click handlers for image links and inline images
         setTimeout(() => {
             document.querySelectorAll('.image-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     this.openModal(link.dataset.image);
                 });
+            });
+            document.querySelectorAll('.chat-inline-image').forEach(el => {
+                if (!el.dataset.clickBound) {
+                    el.dataset.clickBound = 'true';
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.openModal(el.dataset.image);
+                    });
+                }
             });
         }, 100);
     }
@@ -3455,6 +3342,11 @@ class ContentStudioApp {
             imagePath = linkMatch[2];
         }
 
+        // Normalize paths without leading slash: "generated/..." → "/generated/..."
+        if (imagePath.startsWith('generated/')) {
+            imagePath = '/' + imagePath;
+        }
+
         // Ensure it starts with /generated/ and ends with valid media extension
         if (imagePath.includes('/generated/')) {
             // Extract just the /generated/xxx.ext part (images and videos)
@@ -3705,6 +3597,19 @@ class ContentStudioApp {
         // Parse for images in the text
         this.parseAssistantResponse(response.text);
         this.updateRightPanel(response.text);
+
+        // Bind click handlers for inline images
+        setTimeout(() => {
+            document.querySelectorAll('.chat-inline-image').forEach(el => {
+                if (!el.dataset.clickBound) {
+                    el.dataset.clickBound = 'true';
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.openModal(el.dataset.image);
+                    });
+                }
+            });
+        }, 100);
 
         // Render choices if present
         if (response.has_choices && response.choices && response.choices.length > 0) {

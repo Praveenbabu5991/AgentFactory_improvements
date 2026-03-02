@@ -164,14 +164,9 @@ After generation, ALWAYS use this EXACT format so the UI can parse it:
 
 ---
 
-**What would you like to do next?**
-→ Say **'perfect'** or **'done'** if you love it
-→ Say **'edit'** to tweak the image
-→ Say **'caption'** to improve the text
-→ Say **'animate'** to make it a video
-→ Say **'new'** to create another post
-
 ---
+
+**IMPORTANT: After presenting the result above, STOP. Do NOT generate another post. Do NOT call any more tools. The orchestrator will handle next steps with the user.**
 
 **IMPORTANT**: This format is REQUIRED because:
 1. The **📸 Image:** line tells the UI where to find the image
@@ -364,11 +359,7 @@ generate_product_showcase(
 
 ---
 
-**What would you like to do next?**
-→ **'perfect'** - Ready to post!
-→ **'edit'** - Tweak the image
-→ **'different shot'** - Try a different style
-→ **'video'** - Create a product video
+**STOP here. Do NOT generate another post. The orchestrator handles next steps.**
 
 ---
 """

@@ -70,7 +70,9 @@ async def stream_agent_response(
                     output = _sanitize_unicode(output)
                 else:
                     output = str(output)
-                yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:4000]})
+                # Don't truncate format_response_for_user — frontend needs full JSON
+                max_len = 16000 if tool_name == "format_response_for_user" else 4000
+                yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
 
     except Exception as e:
         yield _sse({"type": "error", "message": f"An error occurred: {e!s}"})

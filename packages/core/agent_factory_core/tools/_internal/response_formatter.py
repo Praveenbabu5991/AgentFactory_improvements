@@ -308,7 +308,8 @@ def _remove_choice_patterns(text: str) -> str:
     text = re.sub(r'\n\s*\d+[.)\]]\s*\*?\*?[^*\n]+\*?\*?(?:\s*[-–—:][^\n]+)?(?=\n|$)', '', text)
 
     # Remove bullet lists that look like choices
-    text = re.sub(r'\n\s*[-•*]\s*\*?\*?[^*\n]{1,50}\*?\*?(?:\s*[-–—:][^\n]+)?(?=\n|$)', '', text)
+    # (?!\*) prevents matching **bold:** lines (e.g., **📝 Caption:**)
+    text = re.sub(r'\n\s*[-•*](?!\*)\s*\*?\*?[^*\n]{1,50}\*?\*?(?:\s*[-–—:][^\n]+)?(?=\n|$)', '', text)
 
     # Clean up extra whitespace
     text = re.sub(r'\n{3,}', '\n\n', text)

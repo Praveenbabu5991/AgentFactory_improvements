@@ -350,7 +350,8 @@ def build_message_text(request: ChatRequest) -> str:
     for att in request.attachments:
         att_type = att.get("type", "")
         if att_type == "logo":
-            attachment_context += f"\nLOGO_PATH: {att.get('full_path', att.get('path'))}"
+            logo_path = att.get('full_path') or att.get('path') or ''
+            attachment_context += f"\nLOGO_PATH: {logo_path}"
             colors = att.get("colors")
             if colors:
                 attachment_context += f"\nBRAND_COLORS: {colors.get('dominant')}"

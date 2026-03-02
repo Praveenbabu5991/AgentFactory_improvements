@@ -480,82 +480,6 @@ body {
     background: #334155;
 }
 
-/* Preset Cards */
-.preset-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-sm);
-}
-
-.preset-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-md);
-    background: #334155;
-    border: 2px solid transparent;
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    transition: all var(--transition-base);
-    position: relative;
-}
-
-.preset-card:hover {
-    border-color: var(--primary);
-    background: rgba(34, 211, 238, 0.1);
-}
-
-.preset-card.active {
-    border-color: var(--primary-light);
-    background: rgba(34, 211, 238, 0.15);
-}
-
-.preset-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-}
-
-.preset-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.preset-info { text-align: center; }
-
-.preset-name {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-white);
-}
-
-.preset-industry {
-    display: block;
-    font-size: 0.65rem;
-    color: #64748b;
-}
-
-.preset-check {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 18px;
-    height: 18px;
-    background: var(--accent-green);
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.65rem;
-    color: white;
-}
-
-.preset-card.active .preset-check { display: flex; }
-
 /* Upload Zone */
 .upload-zone {
     border: 2px dashed #334155;
@@ -2807,4 +2731,36 @@ body {
 
 .image-with-caption-card .card-caption-section {
     flex-grow: 1;
+}
+
+/* Disabled input state */
+.chat-input-wrapper.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.send-btn.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Inline images in chat */
+.chat-inline-image {
+    position: relative;
+    display: block;
+    margin: 8px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    max-width: 320px;
+}
+
+.chat-inline-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chat-inline-image:hover {
+    box-shadow: 0 0 0 2px var(--primary);
 }
