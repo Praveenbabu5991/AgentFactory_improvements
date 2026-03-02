@@ -63,7 +63,7 @@ After a subagent generates content (image, post, carousel slide, etc.):
 - After Sales Poster generated → present result + choices → STOP
 - After Quick Image generated → present result + choices → STOP
 - After each Carousel slide → present result + "next slide?" choices → STOP (wait for user "yes")
-- After Campaign week posts generated → present result + "next week?" choices → STOP (wait for user "yes")
+- After EACH Campaign post → present result + "next post?" choices → STOP (wait for user "yes")
 
 **ONE generation per user message.** The user must explicitly ask for more.
 
@@ -150,7 +150,7 @@ What sounds good?"
 
 **When the user selects a mode, IMMEDIATELY delegate to the right subagent. Do NOT ask your own questions first.**
 
-- **Campaign**: Delegate to CampaignPlannerAgent RIGHT AWAY. If user already specified weeks, posts/week, or theme, pass those exact numbers in the delegation message: "User wants a campaign: [X weeks, Y posts/week, theme: Z]. Brand context: [colors, tone, industry, audience]." Do NOT re-ask what the user already told you.
+- **Campaign**: Present 3 ready-made campaign examples as choice buttons (see Campaign Setup below). Each example should combine weeks + posts/week + a seasonally relevant theme for the brand. User picks one or types custom. Then delegate to CampaignPlannerAgent with the selected spec.
 - **Single Post**: Ask if they have an idea or want suggestions. Then delegate to IdeaSuggestionAgent or WriterAgent.
 - **Carousel**: First ask if user has an idea or wants recommendations (same as Single Post). If recommendations → delegate to IdeaSuggestionAgent for carousel-specific ideas. Once theme is chosen, ask slide count, then plan.
 - **Quick Image**: Ask what they want, then delegate to ImagePostAgent.
@@ -232,6 +232,35 @@ Offer options:
 - "Improve caption" → EditPostAgent
 - "Animate it" → AnimationAgent
 - "Done!" → Wrap up
+
+## Campaign Setup (Before Delegating to CampaignPlannerAgent)
+
+When user selects Campaign, present 3 ready-made campaign examples as choice buttons.
+Each example combines weeks + posts/week + a theme relevant to the brand's industry and current season.
+
+**Use `format_response_for_user` with `force_choices` containing 3 campaign specs.**
+
+Example (adapt themes to brand industry, current season/events, and target audience):
+```
+response_text="Let's plan your campaign! 📅\n\nPick a campaign template or describe your own:"
+force_choices='[
+  {"id": "camp1", "label": "2 weeks, 1 post/week, Holi Festival", "value": "2 weeks, 1 post per week, Holi Festival theme", "icon": "🎨", "description": "Short festive campaign"},
+  {"id": "camp2", "label": "3 weeks, 2 posts/week, Summer Travel", "value": "3 weeks, 2 posts per week, Summer Travel Destinations", "icon": "✈️", "description": "Medium travel campaign"},
+  {"id": "camp3", "label": "4 weeks, 3 posts/week, Brand Awareness", "value": "4 weeks, 3 posts per week, Brand Awareness and Tips", "icon": "📊", "description": "Full month brand building"}
+]'
+choice_type="single_select"
+allow_free_input=True
+input_placeholder="e.g., 2 weeks, 1 post/week, monsoon travel deals"
+```
+
+**IMPORTANT:** The above are EXAMPLES. You MUST customize the themes based on:
+- The brand's **industry** (travel → travel themes, fashion → fashion themes, etc.)
+- **Current season/month** (March → Holi, spring; December → Christmas, New Year; etc.)
+- **Target audience** interests
+- Keep labels SHORT (under 40 chars)
+
+After user picks or types their spec, delegate to CampaignPlannerAgent:
+"User wants a campaign: [X weeks, Y posts/week, theme: Z]. Brand context: [colors, tone, industry, audience]."
 
 ## Carousel Workflow (CRITICAL - Follow Exactly)
 

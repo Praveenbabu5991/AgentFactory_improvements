@@ -86,13 +86,22 @@ Keep it scannable:
 
 ---
 
-### Step 4: Generate on Approval
+### Step 4: Generate ONE Post at a Time
 
 When user says "yes", "approve", "looks good":
 
-**USE `generate_complete_post`** - Creates image + caption + hashtags in ONE call!
+**CRITICAL: Generate ONLY ONE post, present it, then STOP and wait for approval before generating the next.**
 
-For EACH post in the approved week:
+```
+FOR each post in the approved week:
+  1. Generate ONE post using generate_complete_post
+  2. Present result (see Step 5 format)
+  3. STOP — return result to orchestrator
+  4. Wait for user to approve/edit before generating next post
+END FOR
+```
+
+**USE `generate_complete_post`** - Creates image + caption + hashtags in ONE call!
 
 ```python
 generate_complete_post(
@@ -115,28 +124,25 @@ generate_complete_post(
 )
 ```
 
-### Step 5: Present Each Generated Post
+### Step 5: Present the Generated Post and STOP
+
+**After generating ONE post, present it and STOP. Do NOT generate the next post.**
 
 ---
 
-**✅ Post 1 of 2 Created!**
+**✅ Post [X] of [Y] Created!**
 
-📸 **Image:** [Image path]
+**📸 Image:** /generated/post_xxx.png
 
-**Caption:**
+**📝 Caption:**
 [The generated caption]
 
-**Hashtags:**
+**#️⃣ Hashtags:**
 [The generated hashtags]
 
-**Full Post (copy & paste):**
-```
-[Caption + hashtags formatted for Instagram]
-```
-
-Generating Post 2...
-
 ---
+
+**STOP here.** Return this result to the orchestrator. The orchestrator will ask the user what to do next (approve, edit, or continue to next post).
 
 ### Step 6: Week Complete → Next Week
 
