@@ -1,0 +1,41 @@
+diff --git a/libs/deepagents/deepagents/middleware/subagents.py b/libs/deepagents/deepagents/middleware/subagents.py
+index b29258c6..efaa99da 100644
+--- a/libs/deepagents/deepagents/middleware/subagents.py
++++ b/libs/deepagents/deepagents/middleware/subagents.py
+@@ -364,7 +364,7 @@ def _get_subagents_legacy(
+                     tools=_tools,
+                     middleware=_middleware,
+                     name=agent_["name"],
+-                ),
++                ).with_config({"recursion_limit": 100}),
+             }
+         )
+ 
+@@ -410,8 +410,16 @@ def _build_task_tool(  # noqa: C901
+             raise ValueError(error_msg)
+ 
+         state_update = {k: v for k, v in result.items() if k not in _EXCLUDED_STATE_KEYS}
+-        # Strip trailing whitespace to prevent API errors with Anthropic
+-        message_text = result["messages"][-1].text.rstrip() if result["messages"][-1].text else ""
++        # Find the last message with actual text content.
++        # When a subagent's final action is a tool call (e.g. format_response_for_user),
++        # the last AIMessage may have content="" with only tool_calls. In that case,
++        # search backwards through messages to find meaningful content to return.
++        message_text = ""
++        for msg in reversed(result["messages"]):
++            text = msg.text.rstrip() if hasattr(msg, "text") and msg.text else ""
++            if text:
++                message_text = text
++                break
+         return Command(
+             update={
+                 **state_update,
+@@ -663,7 +671,7 @@ class SubAgentMiddleware(AgentMiddleware[Any, ContextT, ResponseT]):
+                         tools=spec["tools"],
+                         middleware=middleware,
+                         name=spec["name"],
+-                    ),
++                    ).with_config({"recursion_limit": 100}),
+                 }
+             )
+ 

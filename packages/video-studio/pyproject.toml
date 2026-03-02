@@ -1,0 +1,18 @@
+[project]
+name = "video-studio"
+version = "0.1.0"
+description = "Marketing video generation studio"
+requires-python = ">=3.11"
+dependencies = [
+    "agent-factory-core",
+]
+
+[project.scripts]
+video-studio = "video_studio.app:main"
+
+[tool.uv.sources]
+agent-factory-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Video Agent Factory - AI-Powered Marketing Videos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260205e">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Panel - Chat + Brand Input -->
+        <aside class="chat-panel">
+            <div class="panel-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="brand-name">Marketing Video Factory</span>
+                        <span class="tagline">AI-Powered Marketing Videos</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="status-badge">
+                        <span class="pulse"></span>
+                        <span>Gemini Powered</span>
+                    </div>
+                    <button class="new-session-btn" id="newSessionBtn" title="Start new session">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="panel-tabs">
+                <button class="tab-btn active" data-tab="chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Chat
+                </button>
+                <button class="tab-btn" data-tab="brand">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    Brand Setup
+                </button>
+            </div>
+
+            <!-- Chat Tab Content -->
+            <div class="tab-content active" id="chatTab">
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-avatar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                                    <line x1="9" y1="9" x2="9.01" y2="9"/>
+                                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                                </svg>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-text">
+                                    <p style="font-size: 1.05rem; margin-bottom: 12px;">👋 <strong>Welcome!</strong> I'm your AI video studio. Set up your brand, then let's create.</p>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0;">
+                                        <div style="padding: 12px; background: rgba(139, 92, 246, 0.1); border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                                            <div style="font-size: 1.3rem; margin-bottom: 4px;">✨</div>
+                                            <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Motion Graphics</div>
+                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Eye-catching branded animations for promos & announcements</div>
+                                        </div>
+                                        <div style="padding: 12px; background: rgba(34, 211, 238, 0.1); border-radius: 10px; border: 1px solid rgba(34, 211, 238, 0.2);">
+                                            <div style="font-size: 1.3rem; margin-bottom: 4px;">🖼️</div>
+                                            <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Video from Image</div>
+                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Upload in "Images for Posts" and we create a promotional video</div>
+                                        </div>
+                                        <div style="padding: 12px; background: rgba(52, 211, 153, 0.1); border-radius: 10px; border: 1px solid rgba(52, 211, 153, 0.2);">
+                                            <div style="font-size: 1.3rem; margin-bottom: 4px;">📅</div>
+                                            <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Campaign Planning</div>
+                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Multi-week content calendars with auto-generated videos & captions</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="padding: 10px 14px; background: rgba(34, 211, 238, 0.08); border-radius: 8px; font-size: 0.88rem; text-align: center;">
+                                        <strong>Step 1:</strong> Set up your brand in the left panel &nbsp;→&nbsp; <strong>Step 2:</strong> Pick a video type
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <button class="tab-switch-btn" id="switchToBrand" title="Setup brand">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <path d="M21 15l-5-5L5 21"/>
+                            </svg>
+                        </button>
+                        <textarea 
+                            id="chatInput" 
+                            placeholder="Tell me about your content needs..." 
+                            rows="1"
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn" title="Send message">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-hint">
+                        Press Enter to send • Click 📷 for brand setup
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brand Setup Tab Content -->
+            <div class="tab-content" id="brandTab">
+                <div class="brand-setup-container">
+                    <form id="brandForm" class="brand-form">
+                        <!-- Quick Demo Presets -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">⚡</span>
+                                Quick Presets
+                            </label>
+                            <div class="preset-cards">
+                                <div class="preset-card" data-preset="socialbunkr">
+                                    <div class="preset-logo">
+                                        <img src="/static/presets/socialbunkr-logo.jpeg" alt="SocialBunkr" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23FF6B35%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>S</text></svg>'">
+                                    </div>
+                                    <div class="preset-info">
+                                        <span class="preset-name">SocialBunkr</span>
+                                        <span class="preset-industry">Travel</span>
+                                    </div>
+                                    <div class="preset-check">✓</div>
+                                </div>
+                                <div class="preset-card" data-preset="hylancer">
+                                    <div class="preset-logo">
+                                        <img src="/static/presets/hylancer-logo.jpeg" alt="Hylancer" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%236366F1%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>H</text></svg>'">
+                                    </div>
+                                    <div class="preset-info">
+                                        <span class="preset-name">Hylancer</span>
+                                        <span class="preset-industry">Tech</span>
+                                    </div>
+                                    <div class="preset-check">✓</div>
+                                </div>
+                                <div class="preset-card" data-preset="technova">
+                                    <div class="preset-logo">
+                                        <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%230066FF%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>T</text></svg>" alt="TechNova">
+                                    </div>
+                                    <div class="preset-info">
+                                        <span class="preset-name">TechNova</span>
+                                        <span class="preset-industry">AI</span>
+                                    </div>
+                                    <div class="preset-check">✓</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-divider">
+                            <span>or customize your brand</span>
+                        </div>
+
+                        <!-- Logo Upload -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🖼️</span>
+                                Brand Logo
+                            </label>
+                            <div class="upload-zone" id="uploadZone">
+                                <input type="file" id="logoInput" accept="image/*" hidden>
+                                <div class="upload-content" id="uploadContent">
+                                    <div class="upload-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <path d="M21 15l-5-5L5 21"/>
+                                        </svg>
+                                    </div>
+                                    <p class="upload-text">Drag & drop your logo</p>
+                                    <p class="upload-hint">or click to browse</p>
+                                </div>
+                                <div class="upload-preview" id="uploadPreview" hidden>
+                                    <img id="logoPreview" alt="Logo preview">
+                                    <button type="button" class="remove-logo" id="removeLogo">×</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Extracted Colors -->
+                            <div class="color-extraction" id="colorExtraction" hidden>
+                                <div class="extraction-loading" id="extractionLoading">
+                                    <div class="spinner-small"></div>
+                                    <span>Extracting colors...</span>
+                                </div>
+                                <div class="color-palette" id="colorPalette" hidden>
+                                    <span class="palette-label">Extracted colors (click to select primary):</span>
+                                    <div class="colors" id="colorSwatches"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preset Palettes -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🎨</span>
+                                Color Palette
+                            </label>
+                            <div class="palette-grid">
+                                <div class="palette-option" data-palette="sunset">
+                                    <div class="palette-preview">
+                                        <span style="background:#FF6B6B"></span>
+                                        <span style="background:#FEC89A"></span>
+                                        <span style="background:#FFD93D"></span>
+                                        <span style="background:#C1FFD7"></span>
+                                    </div>
+                                    <span class="palette-name">Sunset</span>
+                                </div>
+                                <div class="palette-option" data-palette="ocean">
+                                    <div class="palette-preview">
+                                        <span style="background:#0077B6"></span>
+                                        <span style="background:#00B4D8"></span>
+                                        <span style="background:#90E0EF"></span>
+                                        <span style="background:#CAF0F8"></span>
+                                    </div>
+                                    <span class="palette-name">Ocean</span>
+                                </div>
+                                <div class="palette-option" data-palette="forest">
+                                    <div class="palette-preview">
+                                        <span style="background:#2D6A4F"></span>
+                                        <span style="background:#40916C"></span>
+                                        <span style="background:#52B788"></span>
+                                        <span style="background:#95D5B2"></span>
+                                    </div>
+                                    <span class="palette-name">Forest</span>
+                                </div>
+                                <div class="palette-option" data-palette="purple">
+                                    <div class="palette-preview">
+                                        <span style="background:#7209B7"></span>
+                                        <span style="background:#9D4EDD"></span>
+                                        <span style="background:#C77DFF"></span>
+                                        <span style="background:#E0AAFF"></span>
+                                    </div>
+                                    <span class="palette-name">Purple</span>
+                                </div>
+                                <div class="palette-option" data-palette="coral">
+                                    <div class="palette-preview">
+                                        <span style="background:#FF6B6B"></span>
+                                        <span style="background:#F472B6"></span>
+                                        <span style="background:#FB7185"></span>
+                                        <span style="background:#FECDD3"></span>
+                                    </div>
+                                    <span class="palette-name">Coral</span>
+                                </div>
+                                <div class="palette-option" data-palette="midnight">
+                                    <div class="palette-preview">
+                                        <span style="background:#1A1B2E"></span>
+                                        <span style="background:#2D3154"></span>
+                                        <span style="background:#6366F1"></span>
+                                        <span style="background:#A5B4FC"></span>
+                                    </div>
+                                    <span class="palette-name">Midnight</span>
+                                </div>
+                                <div class="palette-option" data-palette="golden">
+                                    <div class="palette-preview">
+                                        <span style="background:#B8860B"></span>
+                                        <span style="background:#DAA520"></span>
+                                        <span style="background:#FFD700"></span>
+                                        <span style="background:#FFF8DC"></span>
+                                    </div>
+                                    <span class="palette-name">Golden</span>
+                                </div>
+                                <div class="palette-option" data-palette="monochrome">
+                                    <div class="palette-preview">
+                                        <span style="background:#1A1A1A"></span>
+                                        <span style="background:#4A4A4A"></span>
+                                        <span style="background:#7A7A7A"></span>
+                                        <span style="background:#DADADA"></span>
+                                    </div>
+                                    <span class="palette-name">Mono</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Brand Profile -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🏢</span>
+                                Brand Profile
+                            </label>
+                            <div class="input-group">
+                                <input type="text" id="companyName" placeholder="Company Name">
+                            </div>
+                            <div class="input-group">
+                                <select id="industry">
+                                    <option value="">Select Industry</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Fashion & Apparel">Fashion & Apparel</option>
+                                    <option value="Food & Beverage">Food & Beverage</option>
+                                    <option value="Health & Wellness">Health & Wellness</option>
+                                    <option value="Beauty & Cosmetics">Beauty & Cosmetics</option>
+                                    <option value="Travel & Hospitality">Travel & Hospitality</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Education">Education</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Real Estate">Real Estate</option>
+                                    <option value="E-commerce">E-commerce</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Company Overview -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">📄</span>
+                                Company Overview
+                            </label>
+                            <div class="input-group">
+                                <textarea 
+                                    id="companyOverview" 
+                                    placeholder="Describe what your company does, its mission, values, and unique selling points..."
+                                    rows="4"
+                                    class="textarea-input"
+                                ></textarea>
+                            </div>
+                            <p class="field-hint">This helps generate more relevant post ideas based on your business</p>
+                        </div>
+
+                        <!-- Target Audience -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">👥</span>
+                                Target Audience
+                            </label>
+                            <div class="input-group">
+                                <textarea
+                                    id="targetAudience"
+                                    placeholder="Describe your ideal customers: demographics, interests, pain points, and what motivates them to buy..."
+                                    rows="3"
+                                    class="textarea-input"
+                                ></textarea>
+                            </div>
+                            <p class="field-hint">Who are you marketing to? This ensures content resonates with the right people</p>
+                        </div>
+
+                        <!-- Products/Services -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🛍️</span>
+                                Products/Services
+                            </label>
+                            <div class="input-group">
+                                <textarea
+                                    id="productsServices"
+                                    placeholder="List your main products or services, their key features, and what makes them unique..."
+                                    rows="3"
+                                    class="textarea-input"
+                                ></textarea>
+                            </div>
+                            <p class="field-hint">What are you selling? This helps create targeted marketing content</p>
+                        </div>
+
+                        <!-- Marketing Goals -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🎯</span>
+                                Marketing Goals
+                            </label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="marketingGoals" value="awareness">
+                                    <span>📢 Brand Awareness</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="marketingGoals" value="conversion">
+                                    <span>💰 Conversion/Sales</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="marketingGoals" value="engagement">
+                                    <span>💬 Engagement</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="marketingGoals" value="education">
+                                    <span>📚 Education/Thought Leadership</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="marketingGoals" value="retention">
+                                    <span>🔄 Customer Retention</span>
+                                </label>
+                            </div>
+                            <p class="field-hint">Select your primary marketing objectives for video content</p>
+                        </div>
+
+                        <!-- Brand Messaging -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">💬</span>
+                                Brand Messaging
+                            </label>
+                            <div class="input-group">
+                                <textarea
+                                    id="brandMessaging"
+                                    placeholder="Key messages, value propositions, and brand positioning statements..."
+                                    rows="3"
+                                    class="textarea-input"
+                                ></textarea>
+                            </div>
+                            <p class="field-hint">What key messages should videos communicate? What makes your brand unique?</p>
+                        </div>
+
+                        <!-- Competitive Positioning -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🏆</span>
+                                Competitive Positioning <span class="optional-tag">(optional)</span>
+                            </label>
+                            <div class="input-group">
+                                <textarea
+                                    id="competitivePositioning"
+                                    placeholder="How does your brand stand out from competitors? What differentiates you?"
+                                    rows="2"
+                                    class="textarea-input"
+                                ></textarea>
+                            </div>
+                            <p class="field-hint">Help us create videos that highlight your unique value</p>
+                        </div>
+
+                        <!-- Reference URL (Instagram, Pinterest, Website) -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🔗</span>
+                                Style Reference URL <span class="optional-tag">(Instagram, Pinterest, Website)</span>
+                            </label>
+                            <div class="instagram-input-group">
+                                <input type="text" id="instagramLink" placeholder="https://instagram.com/brand, pinterest.com/board, or any website">
+                                <button type="button" class="scrape-btn" id="scrapeInstagramBtn" title="Fetch style references">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    Fetch
+                                </button>
+                            </div>
+                            <p class="field-hint">Paste any URL - we'll analyze it for visual style inspiration</p>
+                            <div class="scraped-images-preview" id="scrapedImagesPreview" hidden>
+                                <div class="scraped-header">
+                                    <span>📸 Fetched Reference Images</span>
+                                    <button type="button" class="clear-scraped" id="clearScrapedBtn">Clear</button>
+                                </div>
+                                <div class="scraped-images-grid" id="scrapedImagesGrid"></div>
+                            </div>
+                        </div>
+
+                        <!-- Reference Images (Optional) -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🖼️</span>
+                                Reference Images <span class="optional-tag">(optional)</span>
+                            </label>
+                            <div class="reference-upload-zone" id="referenceUploadZone">
+                                <input type="file" id="referenceInput" accept="image/*" multiple hidden>
+                                <div class="reference-upload-content" id="referenceUploadContent">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-mini-icon">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <path d="M12 8v8M8 12h8"/>
+                                    </svg>
+                                    <span>Add reference images for style inspiration</span>
+                                </div>
+                                <div class="reference-previews" id="referencePreviews" hidden>
+                                    <!-- Reference image thumbnails will be added here -->
+                                </div>
+                            </div>
+                            <p class="field-hint">Upload images to guide the visual style of generated content</p>
+                        </div>
+
+                        <!-- User Images for Posts (NEW) -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">📸</span>
+                                Images for Posts <span class="optional-tag">(optional)</span>
+                            </label>
+                            <div class="user-images-upload-zone" id="userImagesUploadZone">
+                                <input type="file" id="userImagesInput" accept="image/*" multiple hidden>
+                                <div class="user-images-upload-content" id="userImagesUploadContent">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-mini-icon">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <path d="M21 15l-5-5L5 21"/>
+                                        <path d="M14 3v4M12 5h4" stroke-opacity="0.5"/>
+                                    </svg>
+                                    <span>Add images you want in your posts</span>
+                                    <p class="upload-hint-small">Products, team photos, or any visuals to include</p>
+                                </div>
+                                <div class="user-images-previews" id="userImagesPreviews" hidden>
+                                    <!-- User image thumbnails with intent selectors will be added here -->
+                                </div>
+                            </div>
+                            <p class="field-hint">These images will be incorporated into your generated posts. Select how each should be used.</p>
+                        </div>
+
+                        <!-- Tone Selection -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🎭</span>
+                                Brand Tone
+                            </label>
+                            <div class="tone-options">
+                                <label class="tone-option">
+                                    <input type="radio" name="tone" value="creative" checked>
+                                    <span class="tone-label">✨ Creative</span>
+                                </label>
+                                <label class="tone-option">
+                                    <input type="radio" name="tone" value="professional">
+                                    <span class="tone-label">💼 Professional</span>
+                                </label>
+                                <label class="tone-option">
+                                    <input type="radio" name="tone" value="playful">
+                                    <span class="tone-label">🎉 Playful</span>
+                                </label>
+                                <label class="tone-option">
+                                    <input type="radio" name="tone" value="minimal">
+                                    <span class="tone-label">🎯 Minimal</span>
+                                </label>
+                                <label class="tone-option">
+                                    <input type="radio" name="tone" value="bold">
+                                    <span class="tone-label">🔥 Bold</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Number of Images -->
+                        <div class="form-section">
+                            <label class="section-label">
+                                <span class="label-icon">🔢</span>
+                                Number of Images
+                            </label>
+                            <div class="num-images-selector">
+                                <input type="range" id="numImages" min="1" max="5" value="1" class="slider">
+                                <div class="slider-labels">
+                                    <span>1</span>
+                                    <span>2</span>
+                                    <span>3</span>
+                                    <span>4</span>
+                                    <span>5</span>
+                                </div>
+                                <div class="slider-value">
+                                    <span id="numImagesValue">1</span> image(s)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Apply Button -->
+                        <button type="submit" class="apply-brand-btn" id="applyBrandBtn">
+                            <span>✓ Save Brand & Start Creating</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel - Generated Content Gallery -->
+        <main class="gallery-panel">
+            <div class="gallery-header">
+                <h2>Your Videos</h2>
+                <div class="gallery-actions" id="galleryActions" hidden>
+                    <button class="action-btn" id="refreshBtn" title="Refresh">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <polyline points="1 20 1 14 7 14"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn primary" id="downloadAllBtn" title="Download all">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="gallery-container" id="galleryContainer">
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-illustration">
+                        <svg viewBox="0 0 200 200" fill="none">
+                            <circle cx="100" cy="100" r="80" stroke="currentColor" stroke-width="2" stroke-dasharray="8 8" opacity="0.3"/>
+                            <rect x="50" y="50" width="100" height="100" rx="12" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+                            <circle cx="75" cy="75" r="10" fill="currentColor" opacity="0.3"/>
+                            <path d="M50 120 L85 90 L115 110 L150 70" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+                            <path d="M70 140 L130 140" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                            <path d="M80 155 L120 155" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                        </svg>
+                    </div>
+                    <h3>No videos generated yet</h3>
+                    <p>Set up your brand and marketing context in the left panel, then ask me to create amazing marketing videos!</p>
+                </div>
+
+                <!-- Content Cards -->
+                <div class="content-grid" id="contentGrid" hidden>
+                    <!-- Generated content cards will be inserted here -->
+                </div>
+
+                <!-- Caption Display (inside scrollable container) -->
+                <div class="caption-display" id="captionDisplay" hidden>
+                    <div class="caption-header">
+                        <h3>📝 Generated Caption</h3>
+                        <button class="copy-btn" id="copyCaption" title="Copy caption">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <div class="caption-content" id="captionContent"></div>
+                    <div class="hashtags-section" id="hashtagsSection" hidden>
+                        <h4>#️⃣ Hashtags</h4>
+                        <div class="hashtags-list" id="hashtagsList"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal" id="imageModal" hidden>
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <img id="modalImage" src="" alt="Full size preview">
+            <div class="modal-actions">
+                <button class="modal-btn" id="modalDownload">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" hidden>
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <span>Creating your content...</span>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=20260218a"></script>
+</body>
+</html>

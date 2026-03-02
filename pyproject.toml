@@ -1,0 +1,12 @@
+[project]
+name = "agent-factory"
+version = "0.1.0"
+description = "Unified Agent Factory Platform - Social Media Content & Marketing Video Generation"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+agent-factory-core = { workspace = true }
+deepagents = { path = "../deepagents/libs/deepagents" }

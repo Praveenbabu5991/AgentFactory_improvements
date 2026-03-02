@@ -1,0 +1,18 @@
+[project]
+name = "content-studio"
+version = "0.1.0"
+description = "Social media content creation studio"
+requires-python = ">=3.11"
+dependencies = [
+    "agent-factory-core",
+]
+
+[project.scripts]
+content-studio = "content_studio.app:main"
+
+[tool.uv.sources]
+agent-factory-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
