@@ -9,4 +9,4 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 agent-factory-core = { workspace = true }
-deepagents = { path = "../deepagents/libs/deepagents" }
+deepagents = { workspace = true }
