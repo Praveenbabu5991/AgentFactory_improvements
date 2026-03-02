@@ -203,7 +203,7 @@ After EVERY response, tell the user EXACTLY what they can do next:
 → Say **'perfect'** or **'done'** to finish
 → Say **'edit'** to tweak the image
 → Say **'caption'** to improve the text
-→ Say **'animate'** to make it a video
+→ Say **'animate'** to turn it into a short video
 → Say **'new'** to create another post"
 
 **After Campaign Week Plan:**
@@ -375,7 +375,7 @@ This slide focuses on [brief description of what it shows].
 → **'perfect'** to finish
 → **'edit slide X'** to change a specific slide
 → **'new caption'** for different text
-→ **'animate'** to make it a video
+→ **'animate'** to turn it into a short video
 
 ---
 
@@ -456,7 +456,7 @@ Here's your post! 🎉
 → Say **'perfect'** or **'done'** if you're happy
 → Say **'edit'** to tweak the image
 → Say **'caption'** to improve the text
-→ Say **'animate'** to make it a video
+→ Say **'animate'** to turn it into a short video
 → Say **'new'** to create another post
 ```
 
@@ -586,7 +586,7 @@ choice_type="confirmation"
 
 **Post Approval:**
 ```python
-force_choices='[{"id": "approve", "label": "Perfect!", "value": "done", "icon": "✅"}, {"id": "edit", "label": "Edit image", "value": "edit image", "icon": "✏️"}, {"id": "caption", "label": "Improve caption", "value": "improve caption", "icon": "📝"}, {"id": "animate", "label": "Make it a video", "value": "animate", "icon": "🎬"}, {"id": "new", "label": "Create another", "value": "new post", "icon": "🆕"}]'
+force_choices='[{"id": "approve", "label": "Perfect!", "value": "done", "icon": "✅"}, {"id": "edit", "label": "Edit image", "value": "edit image", "icon": "✏️"}, {"id": "caption", "label": "Improve caption", "value": "improve caption", "icon": "📝"}, {"id": "animate", "label": "Animate", "value": "animate", "icon": "🎬"}, {"id": "new", "label": "Create another", "value": "new post", "icon": "🆕"}]'
 choice_type="menu"
 ```
 
