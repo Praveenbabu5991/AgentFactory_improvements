@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from agent_factory_core.api.routes import ChatRequest, build_message_text, register_asset_routes
 from agent_factory_core.api.server import create_app
 from agent_factory_core.api.streaming import stream_agent_response
+from agent_factory_core.tools.image_gen import reset_generation_counter
 
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -63,6 +64,7 @@ if TEMPLATES_DIR.exists():
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """Stream chat response as SSE events."""
+    reset_generation_counter()
     agent = _get_agent()
     session_id = request.session_id or str(uuid.uuid4())
     message_text = build_message_text(request)

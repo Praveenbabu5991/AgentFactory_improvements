@@ -8,12 +8,12 @@ automatically for each subagent.
 from deepagents import SubAgent
 
 from agent_factory_core.config.settings import (
+    ANIMATION_MODEL,
     CAMPAIGN_MODEL,
     CAPTION_MODEL,
     EDIT_MODEL,
     IDEA_MODEL,
     IMAGE_MODEL,
-    VIDEO_MODEL,
     WRITER_MODEL,
 )
 
@@ -125,7 +125,7 @@ EDIT_AGENT: SubAgent = {
 ANIMATION_AGENT: SubAgent = {
     "name": "animation-agent",
     "description": "Transforms static images into animated videos using Veo 3.1. Use when user wants to animate a post or create video from image.",
-    "model": f"google_genai:{VIDEO_MODEL}",
+    "model": f"google_genai:{ANIMATION_MODEL}",
     "system_prompt": ANIMATION_AGENT_PROMPT,
     "tools": [
         animate_image,
@@ -137,7 +137,7 @@ ANIMATION_AGENT: SubAgent = {
 VIDEO_AGENT: SubAgent = {
     "name": "video-agent",
     "description": "Creates video content: animated product videos, motion graphics, text-to-video. Use when user wants video/reel content.",
-    "model": f"google_genai:{VIDEO_MODEL}",
+    "model": f"google_genai:{ANIMATION_MODEL}",
     "system_prompt": VIDEO_AGENT_PROMPT,
     "tools": [
         generate_animated_product_video,

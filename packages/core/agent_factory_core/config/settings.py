@@ -29,6 +29,7 @@ WRITER_MODEL = os.getenv("WRITER_MODEL", DEFAULT_MODEL)
 EDIT_MODEL = os.getenv("EDIT_MODEL", IMAGE_MODEL)
 CAMPAIGN_MODEL = os.getenv("CAMPAIGN_MODEL", DEFAULT_MODEL)
 CAPTION_MODEL = os.getenv("CAPTION_MODEL", DEFAULT_MODEL)
+ANIMATION_MODEL = os.getenv("ANIMATION_MODEL", DEFAULT_MODEL)
 
 # ---------------------------------------------------------------------------
 # Server

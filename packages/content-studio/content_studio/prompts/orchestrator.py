@@ -43,10 +43,10 @@ After brand setup, users can choose from these modes:
 
 ### 5. Sales Poster
 - Product sales poster with offers/pricing
-- Requires: product image (uploaded in "Images for Posts" with product_focus intent)
-- If no product image uploaded → ask user to upload one first via Brand Setup
+- Requires: ANY image uploaded in "Images for Posts" (any intent — AUTO, PRODUCT_FOCUS, etc.)
+- If no image uploaded at all → ask user to upload one first via Brand Setup
 - Gather: product name, price/offer, tagline
-- Generate via ImagePostAgent with product_focus intent
+- Generate via ImagePostAgent with product_focus intent (treat the uploaded image AS the product)
 
 ## CRITICAL: STOP AFTER COMPLETION (ALL MODES) — MANDATORY
 
@@ -67,6 +67,8 @@ After a subagent generates content (image, post, carousel slide, etc.):
 - After Quick Image generated → present result + choices → STOP
 - After each Carousel slide → present result + "next slide?" choices → STOP (wait for user "yes")
 - After EACH Campaign post → present result + "next post?" choices → STOP (wait for user "yes")
+
+**IGNORE any "Number of images" or "num_images" context from the user message.** Regardless of what number appears, you MUST generate exactly ONE image/post per turn. After generating one, call format_response_for_user and STOP. The user will request more if they want more.
 
 **ONE generation per user message.** The user must explicitly ask for more.
 
@@ -159,7 +161,7 @@ What sounds good?"
 - **Single Post**: Ask if they have an idea or want suggestions. Then delegate to IdeaSuggestionAgent or WriterAgent.
 - **Carousel**: First ask if user has an idea or wants recommendations (same as Single Post). If recommendations → delegate to IdeaSuggestionAgent for carousel-specific ideas. Once theme is chosen, ask slide count, then plan.
 - **Quick Image**: Ask what they want, then delegate to ImagePostAgent.
-- **Sales Poster**: Check if product image was uploaded (look for PRODUCT_FOCUS in USER_IMAGES_FOR_POST). If not, tell user to upload a product image in Brand Setup first. If yes, ask for: product name, price/offer details, tagline. Then delegate to ImagePostAgent with product_focus user_images.
+- **Sales Poster**: Check if `USER_IMAGES_FOR_POST:` section exists in the message with at least one image entry. The brand logo does NOT count — only images listed under `USER_IMAGES_FOR_POST:`. If no image, tell user to attach one via 📎 or upload in Brand Setup. If yes, treat it as the product image and proceed to sale details (choice buttons). Then delegate to ImagePostAgent with product_focus user_images.
 
 **The rule is: ONE agent asks the questions, not both you and the subagent.**
 
@@ -412,9 +414,9 @@ For quick image requests (no full workflow):
 For product sales posters:
 
 ### Step 1: Check for Product Image
-Look for PRODUCT_FOCUS images in USER_IMAGES_FOR_POST context.
-- If found → proceed to Step 2. The poster MUST feature this uploaded product image. Do NOT proceed without it.
-- If NOT found → "To create a sales poster, I need a product image! Please go to **Brand Setup** → **Images for Posts** → upload your product photo with 'Product Focus' intent, then come back."
+Look for `USER_IMAGES_FOR_POST:` section in the message context. This is DIFFERENT from the logo. The logo (listed as "Logo: Available at ...") is NOT a product image.
+- If the `USER_IMAGES_FOR_POST:` section exists with at least one `[INTENT] /path` entry → proceed to Step 2. The poster MUST feature this uploaded image as the product.
+- If `USER_IMAGES_FOR_POST:` is MISSING or has no entries → "I don't see a product image yet. You can **attach one now** using the 📎 button next to the text box, then tell me the sale details. Or upload in **Brand Setup** → **Images for Posts**."
 
 ### Step 2: Gather Sale Details
 Call `format_response_for_user` with 3 example sale templates as choices.
