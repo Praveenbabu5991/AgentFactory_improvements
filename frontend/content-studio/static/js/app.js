@@ -1577,18 +1577,13 @@ class ContentStudioApp {
                                 firstContentReceived = true;
                                 this.hideProcessingIndicator();
                             }
-                            const errorMsg = data.message || 'An unexpected error occurred.';
-                            let displayMsg;
-                            if (errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
-                                displayMsg = 'The AI service is temporarily busy (rate limit reached). Please wait a minute and try again.';
-                            } else {
-                                displayMsg = 'Sorry, something went wrong. Please try again.';
-                            }
+                            const errorMsg = data.message || 'An unknown error occurred.';
+                            console.error('Agent error:', errorMsg);
                             if (!messageElement) {
                                 messageElement = this.addMessage('', 'assistant', true);
                             }
-                            assistantMessage = displayMsg;
-                            this.updateMessage(messageElement, displayMsg);
+                            assistantMessage = `⚠️ ${errorMsg}`;
+                            this.updateMessage(messageElement, assistantMessage);
                         } else if (data.type === 'done') {
                             // Always hide processing indicator on done
                             this.hideProcessingIndicator();

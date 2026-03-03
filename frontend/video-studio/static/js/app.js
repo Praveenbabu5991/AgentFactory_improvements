@@ -1865,6 +1865,19 @@ class MarketingVideoApp {
                                 messageElement = this.addMessage('', 'assistant', true);
                             }
                             this.updateMessage(messageElement, assistantMessage);
+                        } else if (data.type === 'error') {
+                            // Show error message from backend
+                            if (!firstContentReceived) {
+                                firstContentReceived = true;
+                                this.hideProcessingIndicator();
+                            }
+                            const errorMsg = data.message || 'An unknown error occurred.';
+                            console.error('Agent error:', errorMsg);
+                            if (!messageElement) {
+                                messageElement = this.addMessage('', 'assistant', true);
+                            }
+                            assistantMessage = `⚠️ ${errorMsg}`;
+                            this.updateMessage(messageElement, assistantMessage);
                         } else if (data.type === 'done') {
                             // Try to parse as structured response from format_response_for_user tool
                             const structuredResponse = this.parseStructuredResponse(assistantMessage);

@@ -32,6 +32,26 @@ def _log(msg: str):
     print(msg, flush=True)
 
 
+def _extract_error_detail(exc: Exception) -> str:
+    """Extract a user-friendly error message from common API exceptions."""
+    err = str(exc)
+    # Google/Gemini API errors
+    if "429" in err or "RESOURCE_EXHAUSTED" in err:
+        return "Rate limit exceeded (429). The Gemini API free tier allows 20 requests/day per model. Please wait or use a different API key."
+    if "403" in err or "PERMISSION_DENIED" in err:
+        return "Permission denied (403). Check your API key permissions."
+    if "400" in err or "INVALID_ARGUMENT" in err:
+        return f"Invalid request (400): {err[:200]}"
+    if "404" in err or "NOT_FOUND" in err:
+        return f"Model not found (404): {err[:200]}"
+    if "500" in err or "INTERNAL" in err:
+        return "Gemini API internal error (500). Please try again."
+    if "503" in err or "UNAVAILABLE" in err:
+        return "Gemini API temporarily unavailable (503). Please try again in a moment."
+    # Generic
+    return f"Error: {err[:300]}"
+
+
 async def stream_agent_response(
     agent: CompiledStateGraph,
     input_data: dict,
@@ -51,6 +71,7 @@ async def stream_agent_response(
     yield _sse({"type": "session", "session_id": session_id})
 
     has_content = False  # Track if we sent any text or tool events
+    last_error = None  # Capture last error from events
 
     try:
         async for event in agent.astream_events(input_data, config=config, version="v2"):
@@ -84,17 +105,31 @@ async def stream_agent_response(
                 max_len = 16000 if tool_name == "format_response_for_user" else 4000
                 yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
 
+            # Capture errors/retries from LangGraph events
+            elif kind in ("on_chain_error", "on_llm_error", "on_chat_model_error"):
+                error = event.get("data", {})
+                if isinstance(error, dict):
+                    err_msg = error.get("error", error.get("message", str(error)))
+                else:
+                    err_msg = str(error)
+                last_error = err_msg
+                _log(f"   ❌ {kind}: {err_msg}")
+
     except Exception as e:
-        _log(f"   ❌ SSE streaming error: {e!s}")
-        yield _sse({"type": "error", "message": f"An error occurred: {e!s}"})
+        error_str = str(e)
+        _log(f"   ❌ SSE streaming error: {error_str}")
+        # Extract useful details from common Gemini errors
+        detail = _extract_error_detail(e)
+        yield _sse({"type": "error", "message": detail})
 
     # If the agent completed without producing any text or tool events,
     # it likely means the model call failed silently (e.g., rate limit).
     if not has_content:
-        _log(f"   ⚠️ Empty response for session={session_id} — model may be rate-limited")
+        detail = last_error or "No response from model"
+        _log(f"   ⚠️ Empty response for session={session_id} — {detail}")
         yield _sse({
             "type": "error",
-            "message": "The AI service didn't respond. This usually means the API is temporarily busy (rate limit). Please wait a moment and try again."
+            "message": f"Sorry, the AI model didn't respond. Reason: {detail}"
         })
 
     yield _sse({"type": "done"})
