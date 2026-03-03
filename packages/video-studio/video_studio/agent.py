@@ -29,8 +29,8 @@ def create_video_studio_agent(
 ) -> CompiledStateGraph:
     """Create the video studio orchestrator agent.
 
-    The orchestrator coordinates 4 specialist subagents for marketing
-    video creation: video generation, animation, captions, and campaigns.
+    The orchestrator coordinates 3 specialist subagents for branded
+    story video creation: video generation, animation, and captions.
     """
     orchestrator_tools = [
         search_web,

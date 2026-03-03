@@ -12,11 +12,9 @@ class MarketingVideoApp {
         this.currentCaption = null;
         this.currentHashtags = [];
         
-        // Campaign tracking
-        this.currentCampaign = null;
-        this.campaignPosts = [];  // Array of {image, caption, hashtags, day, week}
-        this.galleryViewMode = 'all';  // 'all', 'posts', 'campaigns'
-        
+        // Inline chat image attachments
+        this.chatInlineImages = [];
+
         // Brand configuration
         this.brandConfig = {
             companyName: '',
@@ -143,7 +141,10 @@ class MarketingVideoApp {
         this.chatMessages = document.getElementById('chatMessages');
         this.chatInput = document.getElementById('chatInput');
         this.sendBtn = document.getElementById('sendBtn');
-        
+        this.attachImageBtn = document.getElementById('attachImageBtn');
+        this.chatImageInput = document.getElementById('chatImageInput');
+        this.chatAttachments = document.getElementById('chatAttachments');
+
         // Brand form elements
         this.brandForm = document.getElementById('brandForm');
         this.presetCards = document.querySelectorAll('.preset-card');
@@ -233,7 +234,15 @@ class MarketingVideoApp {
             }
         });
         this.chatInput.addEventListener('input', () => this.resizeTextarea());
-        
+
+        // Inline image attach in chat
+        this.attachImageBtn?.addEventListener('click', () => this.chatImageInput?.click());
+        this.chatImageInput?.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+            files.forEach(file => this.addChatInlineImage(file));
+            e.target.value = '';
+        });
+
         // Presets
         this.presetCards.forEach(card => {
             card.addEventListener('click', () => this.selectPreset(card.dataset.preset));
@@ -1172,8 +1181,7 @@ class MarketingVideoApp {
         parts.push(`Style: ${this.brandConfig.tone}`);
         if (this.brandConfig.referenceImages.length > 0) parts.push(`${this.brandConfig.referenceImages.length} reference image(s)`);
         if (this.brandConfig.userImages.length > 0) parts.push(`${this.brandConfig.userImages.length} image(s) for posts`);
-        parts.push(`Generate: ${this.brandConfig.numImages} image(s)`);
-        
+
         // Switch to chat and add message
         this.switchTab('chat');
         this.addMessage(`I've set up my brand: ${parts.join('. ')}`, 'user');
@@ -1190,7 +1198,7 @@ class MarketingVideoApp {
 - Company: ${this.brandConfig.companyName || 'Not specified'}
 - Industry: ${this.brandConfig.industry || 'General'}
 - Tone: ${this.brandConfig.tone || 'creative'}
-- Number of images to generate: ${this.brandConfig.numImages}`;
+`;
 
         if (this.brandConfig.companyOverview) {
             brandInfo += `\n- Company Overview: ${this.brandConfig.companyOverview}`;
@@ -1401,7 +1409,98 @@ class MarketingVideoApp {
         this.chatInput.style.height = 'auto';
         this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 100) + 'px';
     }
-    
+
+    // Inline chat image attach (directly in chat input, like Sales Poster in Content Studio)
+    async addChatInlineImage(file) {
+        if (!file.type.startsWith('image/')) return;
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Image must be under 20 MB');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const imgData = {
+                id: 'chat-img-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                filename: file.name,
+                dataUrl: e.target.result,
+                uploading: true,
+                error: false,
+                fullPath: null,
+                serverPath: null,
+                usage_intent: 'product_focus',
+                extracted_colors: []
+            };
+            this.chatInlineImages.push(imgData);
+            this.renderChatAttachments();
+
+            // Upload to server
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('session_id', this.sessionId || '');
+                formData.append('usage_intent', imgData.usage_intent);
+
+                const response = await fetch('/upload-user-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.image) {
+                        imgData.id = data.image.id;
+                        imgData.fullPath = data.image.path;
+                        imgData.serverPath = data.image.url;
+                        imgData.extracted_colors = data.image.extracted_colors || [];
+                        imgData.uploading = false;
+                    } else {
+                        imgData.uploading = false;
+                        imgData.error = true;
+                    }
+                } else {
+                    imgData.uploading = false;
+                    imgData.error = true;
+                }
+            } catch (error) {
+                console.error('Error uploading inline image:', error);
+                imgData.uploading = false;
+                imgData.error = true;
+            }
+            this.renderChatAttachments();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    renderChatAttachments() {
+        if (!this.chatAttachments) return;
+
+        if (this.chatInlineImages.length === 0) {
+            this.chatAttachments.hidden = true;
+            return;
+        }
+
+        this.chatAttachments.hidden = false;
+        this.chatAttachments.innerHTML = '';
+
+        this.chatInlineImages.forEach(img => {
+            const thumb = document.createElement('div');
+            thumb.className = 'chat-attach-thumb';
+            thumb.innerHTML = `
+                <img src="${img.dataUrl}" alt="${img.filename}">
+                ${img.uploading ? '<div class="attach-spinner"></div>' : ''}
+                ${img.error ? '<div class="attach-error">!</div>' : ''}
+                <button class="attach-remove" data-id="${img.id}">\u00d7</button>
+            `;
+            thumb.querySelector('.attach-remove').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.chatInlineImages = this.chatInlineImages.filter(i => i.id !== img.id);
+                this.renderChatAttachments();
+            });
+            this.chatAttachments.appendChild(thumb);
+        });
+    }
+
     async sendMessage() {
         const message = this.chatInput.value.trim();
         if (!message || this.isProcessing) return;
@@ -1431,13 +1530,15 @@ class MarketingVideoApp {
             });
         }
 
-        // Add user images for posts (with usage intents)
+        // Add user images for posts (with usage intents) — from Brand Setup + inline chat attachments
         const uploadedUserImages = this.brandConfig.userImages.filter(img => img.fullPath && !img.uploading);
-        if (uploadedUserImages.length > 0) {
+        const readyInlineImages = this.chatInlineImages.filter(img => img.fullPath && !img.uploading && !img.error);
+        const allUserImages = [...uploadedUserImages, ...readyInlineImages];
+        if (allUserImages.length > 0) {
             attachments.push({
                 type: 'user_images',
-                count: uploadedUserImages.length,
-                images: uploadedUserImages.map(img => ({
+                count: allUserImages.length,
+                images: allUserImages.map(img => ({
                     id: img.id,
                     filename: img.filename,
                     path: img.fullPath,
@@ -1448,10 +1549,21 @@ class MarketingVideoApp {
             });
         }
 
+        // Persist inline images into brandConfig so they carry across messages
+        readyInlineImages.forEach(img => {
+            if (!this.brandConfig.userImages.find(u => u.id === img.id)) {
+                this.brandConfig.userImages.push({ ...img });
+            }
+        });
+
+        // Clear inline attachments strip
+        this.chatInlineImages = [];
+        this.renderChatAttachments();
+
         // Append brand context to message if we have it
         let fullMessage = message;
         if (this.brandConfig.companyName || this.brandConfig.brandColors) {
-            fullMessage += `\n\n[Current brand context: ${this.brandConfig.companyName || 'Brand'}, Industry: ${this.brandConfig.industry || 'General'}, Tone: ${this.brandConfig.tone || 'creative'}, Colors: ${this.brandConfig.brandColors?.dominant || 'not set'}, Number of images to generate: ${this.brandConfig.numImages}]`;
+            fullMessage += `\n\n[Current brand context: ${this.brandConfig.companyName || 'Brand'}, Industry: ${this.brandConfig.industry || 'General'}, Tone: ${this.brandConfig.tone || 'creative'}, Colors: ${this.brandConfig.brandColors?.dominant || 'not set'}]`;
             if (this.brandConfig.companyOverview) {
                 fullMessage += `\n[Company Overview: ${this.brandConfig.companyOverview}]`;
             }

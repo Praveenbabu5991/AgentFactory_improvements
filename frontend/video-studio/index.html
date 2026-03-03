@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=20260205e">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260303a">
 </head>
 <body>
     <div class="app-container">
@@ -76,21 +76,16 @@
                                 <div class="message-text">
                                     <p style="font-size: 1.05rem; margin-bottom: 12px;">👋 <strong>Welcome!</strong> I'm your AI video studio. Set up your brand, then let's create.</p>
 
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0;">
                                         <div style="padding: 12px; background: rgba(139, 92, 246, 0.1); border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.2);">
                                             <div style="font-size: 1.3rem; margin-bottom: 4px;">✨</div>
                                             <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Motion Graphics</div>
-                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Eye-catching branded animations for promos & announcements</div>
+                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Branded story animations with your company name & logo</div>
                                         </div>
                                         <div style="padding: 12px; background: rgba(34, 211, 238, 0.1); border-radius: 10px; border: 1px solid rgba(34, 211, 238, 0.2);">
                                             <div style="font-size: 1.3rem; margin-bottom: 4px;">🖼️</div>
                                             <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Video from Image</div>
-                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Upload in "Images for Posts" and we create a promotional video</div>
-                                        </div>
-                                        <div style="padding: 12px; background: rgba(52, 211, 153, 0.1); border-radius: 10px; border: 1px solid rgba(52, 211, 153, 0.2);">
-                                            <div style="font-size: 1.3rem; margin-bottom: 4px;">📅</div>
-                                            <div style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">Campaign Planning</div>
-                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Multi-week content calendars with auto-generated videos & captions</div>
+                                            <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Upload your image + content, we create a branded story video</div>
                                         </div>
                                     </div>
 
@@ -104,6 +99,7 @@
                 </div>
 
                 <div class="chat-input-container">
+                    <div class="chat-attachments-strip" id="chatAttachments" hidden></div>
                     <div class="chat-input-wrapper">
                         <button class="tab-switch-btn" id="switchToBrand" title="Setup brand">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -112,9 +108,15 @@
                                 <path d="M21 15l-5-5L5 21"/>
                             </svg>
                         </button>
-                        <textarea 
-                            id="chatInput" 
-                            placeholder="Tell me about your content needs..." 
+                        <button class="attach-btn" id="attachImageBtn" title="Attach image">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                            </svg>
+                        </button>
+                        <input type="file" id="chatImageInput" accept="image/*" multiple hidden>
+                        <textarea
+                            id="chatInput"
+                            placeholder="Tell me about your content needs..."
                             rows="1"
                         ></textarea>
                         <button class="send-btn" id="sendBtn" title="Send message">
@@ -134,50 +136,6 @@
             <div class="tab-content" id="brandTab">
                 <div class="brand-setup-container">
                     <form id="brandForm" class="brand-form">
-                        <!-- Quick Demo Presets -->
-                        <div class="form-section">
-                            <label class="section-label">
-                                <span class="label-icon">⚡</span>
-                                Quick Presets
-                            </label>
-                            <div class="preset-cards">
-                                <div class="preset-card" data-preset="socialbunkr">
-                                    <div class="preset-logo">
-                                        <img src="/static/presets/socialbunkr-logo.jpeg" alt="SocialBunkr" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23FF6B35%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>S</text></svg>'">
-                                    </div>
-                                    <div class="preset-info">
-                                        <span class="preset-name">SocialBunkr</span>
-                                        <span class="preset-industry">Travel</span>
-                                    </div>
-                                    <div class="preset-check">✓</div>
-                                </div>
-                                <div class="preset-card" data-preset="hylancer">
-                                    <div class="preset-logo">
-                                        <img src="/static/presets/hylancer-logo.jpeg" alt="Hylancer" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%236366F1%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>H</text></svg>'">
-                                    </div>
-                                    <div class="preset-info">
-                                        <span class="preset-name">Hylancer</span>
-                                        <span class="preset-industry">Tech</span>
-                                    </div>
-                                    <div class="preset-check">✓</div>
-                                </div>
-                                <div class="preset-card" data-preset="technova">
-                                    <div class="preset-logo">
-                                        <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%230066FF%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22>T</text></svg>" alt="TechNova">
-                                    </div>
-                                    <div class="preset-info">
-                                        <span class="preset-name">TechNova</span>
-                                        <span class="preset-industry">AI</span>
-                                    </div>
-                                    <div class="preset-check">✓</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="section-divider">
-                            <span>or customize your brand</span>
-                        </div>
-
                         <!-- Logo Upload -->
                         <div class="form-section">
                             <label class="section-label">
@@ -546,27 +504,6 @@
                             </div>
                         </div>
 
-                        <!-- Number of Images -->
-                        <div class="form-section">
-                            <label class="section-label">
-                                <span class="label-icon">🔢</span>
-                                Number of Images
-                            </label>
-                            <div class="num-images-selector">
-                                <input type="range" id="numImages" min="1" max="5" value="1" class="slider">
-                                <div class="slider-labels">
-                                    <span>1</span>
-                                    <span>2</span>
-                                    <span>3</span>
-                                    <span>4</span>
-                                    <span>5</span>
-                                </div>
-                                <div class="slider-value">
-                                    <span id="numImagesValue">1</span> image(s)
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Apply Button -->
                         <button type="submit" class="apply-brand-btn" id="applyBrandBtn">
                             <span>✓ Save Brand & Start Creating</span>
@@ -674,6 +611,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=20260218a"></script>
+    <script src="/static/js/app.js?v=20260303a"></script>
 </body>
 </html>
