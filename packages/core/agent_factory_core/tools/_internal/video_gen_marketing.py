@@ -485,30 +485,44 @@ def generate_video(
     duration_seconds: int = 8,
     aspect_ratio: str = "9:16",
     output_dir: str = "generated",
+    negative_prompt: str = "",
+    logo_path: str = "",
+    brand_name: str = "",
+    brand_colors: list[str] = [],
+    cta_text: str = "",
 ) -> dict:
     """
     Generate a video using Veo 3.1 — the unified video generation tool.
 
     This is the ONLY tool needed for ALL video types. The prompt determines
     what kind of video is created (brand story, product launch, motion graphics,
-    talking head, explainer, etc.). Write a detailed, cinematic prompt.
+    etc.). Write a detailed, cinematic prompt following the 5-part Veo formula:
+    [Camera + lens] + [Subject] + [Action] + [Setting + atmosphere] + [Style + Audio].
+
+    IMPORTANT: Do NOT include text/titles/company name in the Veo prompt — Veo
+    cannot render text correctly. Branding (logo, company name, CTA) is added
+    automatically as MoviePy post-processing overlays when you pass the branding
+    parameters below.
 
     Args:
-        prompt: The complete video generation prompt. Must be detailed and include:
-            - Scene description (what happens visually)
-            - Camera work (close-up, wide shot, slow pan, tracking shot)
-            - Lighting & mood (warm golden hour, moody studio, bright airy)
-            - Brand colors (e.g. "Color palette features #FF6B35 orange")
-            - Motion & pacing (smooth slow-motion, energetic cuts)
-            - Style (cinematic, modern minimal, bold, elegant)
-            - Audio/music mood (upbeat electronic, inspiring orchestral)
+        prompt: The complete video generation prompt (50-175 words). Must include:
+            - Cinematography (shot type, angle, movement, lens)
+            - Subject (main focal point with visual specifics)
+            - Action (physics-based verbs: unfurl, cascade, drift, shimmer)
+            - Context (environment, time of day, atmosphere)
+            - Style + Audio (aesthetic, lighting source, SFX, ambient, music)
         image_path: Optional. Path to a starting image for image-to-video mode.
-            Use for product showcases where you have a product photo.
         reference_image_paths: Optional. List of paths to reference images
-            (logo, brand assets, style references) for Veo to use as visual guides.
+            (logo, brand assets) for Veo to use as visual guides (text-to-video only).
         duration_seconds: Video length in seconds (5-8). Default 8.
         aspect_ratio: "9:16" (Reels/TikTok), "16:9" (YouTube), "1:1" (Feed).
         output_dir: Directory to save the generated video.
+        negative_prompt: Elements to exclude (e.g. "blurry, low quality, distorted").
+            Text-related negatives are always added automatically.
+        logo_path: Path to brand logo for watermark overlay (MoviePy post-processing).
+        brand_name: Company name for text overlay (MoviePy post-processing).
+        brand_colors: List of hex colors for brand text styling.
+        cta_text: Call-to-action text overlay (e.g. "Shop Now", "Visit us").
 
     Returns:
         Dictionary with video path, URL, and metadata on success.
@@ -534,6 +548,13 @@ def generate_video(
             "number_of_videos": 1,
             "duration_seconds": clamped_duration,
         }
+
+        # Always exclude text rendering (Veo cannot render text correctly)
+        base_negatives = "text, titles, captions, words, letters, watermarks, subtitles"
+        if negative_prompt:
+            config_kwargs["negative_prompt"] = f"{negative_prompt}, {base_negatives}"
+        else:
+            config_kwargs["negative_prompt"] = base_negatives
 
         # Handle reference images (only for text-to-video; Veo API does NOT
         # support reference_images + image together in image-to-video mode)
@@ -665,19 +686,35 @@ def generate_video(
             client.files.download(file=video.video)
             video.video.save(str(video_path))
 
-            file_size = video_path.stat().st_size
-            print(f"  ✅ Video saved: {video_path} ({file_size:,} bytes, ~{clamped_duration}s)")
+            print(f"  ✅ Video saved: {video_path} ({video_path.stat().st_size:,} bytes, ~{clamped_duration}s)")
+
+            # Post-process: add branding overlays via MoviePy
+            final_video_path = str(video_path)
+            if logo_path or brand_name or cta_text:
+                final_video_path = _add_branding_to_video(
+                    video_path=str(video_path),
+                    logo_path=logo_path or None,
+                    brand_name=brand_name or None,
+                    cta_text=cta_text or None,
+                    brand_colors=brand_colors or None,
+                )
+                if final_video_path != str(video_path):
+                    print(f"  ✅ Branding overlays applied: {final_video_path}")
+
+            final_filename = Path(final_video_path).name
+            file_size = Path(final_video_path).stat().st_size
 
             return {
                 "status": "success",
-                "video_path": str(video_path),
-                "filename": filename,
-                "url": f"/generated/{filename}",
+                "video_path": final_video_path,
+                "filename": final_filename,
+                "url": f"/generated/{final_filename}",
                 "duration_seconds": clamped_duration,
                 "aspect_ratio": aspect_ratio,
                 "model": video_model,
                 "type": "generated",
                 "file_size": file_size,
+                "branded": bool(logo_path or brand_name),
             }
 
         except Exception as model_error:

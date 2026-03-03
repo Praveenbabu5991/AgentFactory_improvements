@@ -4,10 +4,43 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from collections.abc import AsyncGenerator
 
+from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.outputs import LLMResult
 from langgraph.graph.state import CompiledStateGraph
+
+
+class _ErrorCapturingCallback(AsyncCallbackHandler):
+    """Captures LLM errors that LangGraph silently swallows.
+
+    LangGraph's ``astream_events`` often does not emit error events when the
+    underlying model call fails (e.g. Gemini rate-limit / empty response).
+    This callback is injected at the LangChain level so it fires *before*
+    LangGraph has a chance to catch and hide the error.
+    """
+
+    def __init__(self) -> None:
+        self.errors: list[str] = []
+        self.last_finish_reason: str | None = None
+
+    async def on_llm_error(self, error: BaseException, **kwargs) -> None:  # type: ignore[override]
+        err_str = str(error)
+        self.errors.append(err_str)
+        _log(f"   🔍 LLM error captured by callback: {err_str[:300]}")
+
+    async def on_llm_end(self, response: LLMResult, **kwargs) -> None:  # type: ignore[override]
+        # Detect unusual finish reasons (rate-limit, safety block, etc.)
+        if response and response.generations:
+            for gen_list in response.generations:
+                for gen in gen_list:
+                    info = getattr(gen, "generation_info", None) or {}
+                    finish_reason = info.get("finish_reason", "")
+                    if finish_reason and finish_reason.upper() not in (
+                        "STOP", "END_TURN", "MAX_TOKENS",
+                    ):
+                        self.last_finish_reason = finish_reason
+                        _log(f"   🔍 Unusual finish_reason: {finish_reason}")
 
 
 def _sanitize_unicode(text: str) -> str:
@@ -32,9 +65,9 @@ def _log(msg: str):
     print(msg, flush=True)
 
 
-def _extract_error_detail(exc: Exception) -> str:
+def _extract_error_detail(exc: Exception | str) -> str:
     """Extract a user-friendly error message from common API exceptions."""
-    err = str(exc)
+    err = exc if isinstance(exc, str) else str(exc)
     # Google/Gemini API errors
     if "429" in err or "RESOURCE_EXHAUSTED" in err:
         return "Rate limit exceeded (429). The Gemini API free tier allows 20 requests/day per model. Please wait or use a different API key."
@@ -72,6 +105,11 @@ async def stream_agent_response(
 
     has_content = False  # Track if we sent any text or tool events
     last_error = None  # Capture last error from events
+
+    # Inject a callback handler to capture LLM errors that LangGraph swallows
+    error_cb = _ErrorCapturingCallback()
+    existing_callbacks = config.get("callbacks", [])
+    config = {**config, "callbacks": [*existing_callbacks, error_cb]}
 
     try:
         async for event in agent.astream_events(input_data, config=config, version="v2"):
@@ -125,11 +163,19 @@ async def stream_agent_response(
     # If the agent completed without producing any text or tool events,
     # it likely means the model call failed silently (e.g., rate limit).
     if not has_content:
-        detail = last_error or "No response from model"
+        # Priority: callback-captured errors > event errors > finish_reason > generic
+        if error_cb.errors:
+            detail = _extract_error_detail(error_cb.errors[-1])
+        elif last_error:
+            detail = _extract_error_detail(last_error)
+        elif error_cb.last_finish_reason:
+            detail = f"Model stopped unexpectedly (finish_reason={error_cb.last_finish_reason})"
+        else:
+            detail = "No response from model — the API returned an empty response."
         _log(f"   ⚠️ Empty response for session={session_id} — {detail}")
         yield _sse({
             "type": "error",
-            "message": f"Sorry, the AI model didn't respond. Reason: {detail}"
+            "message": f"Sorry, the AI model didn't respond. {detail}"
         })
 
     yield _sse({"type": "done"})

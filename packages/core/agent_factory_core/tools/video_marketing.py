@@ -18,21 +18,47 @@ def generate_video(
     image_path: str = "",
     duration_seconds: int = 8,
     aspect_ratio: str = "9:16",
+    negative_prompt: str = "",
+    logo_path: str = "",
+    brand_name: str = "",
+    brand_colors: str = "",
+    cta_text: str = "",
 ) -> str:
-    """Generate a marketing video from a text prompt using Veo 3.1.
+    """Generate a marketing video using Veo 3.1.
 
-    This is the unified video generation tool. The prompt determines the
-    video type (brand story, product launch, motion graphics, etc.).
+    The prompt determines the video type. Follow the 5-part Veo formula:
+    [Camera + lens] + [Subject] + [Action] + [Setting + atmosphere] + [Style + Audio].
+
+    IMPORTANT: Do NOT include text/titles/company name in the Veo prompt.
+    Veo cannot render text correctly. Branding (logo, name, CTA) is added
+    automatically as post-processing overlays via the branding parameters.
 
     Args:
-        prompt: Detailed video description including style, mood, and content.
+        prompt: Detailed cinematic video description (50-175 words). Include
+            camera work, subject, action, context, style, and audio description.
+            End with "No text, no titles, no captions, no words, no watermarks."
         image_path: Optional source image for image-to-video generation.
         duration_seconds: Video duration (5-8).
         aspect_ratio: Video aspect ratio ("9:16" for reels, "16:9" for landscape).
+        negative_prompt: Elements to exclude (e.g. "blurry, low quality, distorted").
+        logo_path: Path to brand logo for watermark overlay (post-processing).
+        brand_name: Company name for text overlay (post-processing).
+        brand_colors: JSON list of hex colors (e.g. '["#FF6B35", "#2EC4B6"]').
+        cta_text: Call-to-action text overlay (e.g. "Shop Now").
     """
+    colors_list = []
+    if brand_colors:
+        try:
+            colors_list = json.loads(brand_colors)
+        except (json.JSONDecodeError, TypeError):
+            colors_list = []
+
     result = _mkt_impl.generate_video(
         prompt=prompt, image_path=image_path,
         duration_seconds=duration_seconds, aspect_ratio=aspect_ratio,
+        negative_prompt=negative_prompt, logo_path=logo_path,
+        brand_name=brand_name, brand_colors=colors_list,
+        cta_text=cta_text,
     )
     return json.dumps(result)
 
