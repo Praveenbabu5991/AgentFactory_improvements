@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from collections.abc import AsyncGenerator
 
 from langgraph.graph.state import CompiledStateGraph
@@ -26,6 +27,11 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
+def _log(msg: str):
+    """Print with flush for immediate visibility."""
+    print(msg, flush=True)
+
+
 async def stream_agent_response(
     agent: CompiledStateGraph,
     input_data: dict,
@@ -44,6 +50,8 @@ async def stream_agent_response(
     """
     yield _sse({"type": "session", "session_id": session_id})
 
+    has_content = False  # Track if we sent any text or tool events
+
     try:
         async for event in agent.astream_events(input_data, config=config, version="v2"):
             kind = event.get("event", "")
@@ -53,11 +61,13 @@ async def stream_agent_response(
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     text = chunk.content
                     if isinstance(text, str) and text:
+                        has_content = True
                         yield _sse({"type": "text", "content": _sanitize_unicode(text)})
 
             elif kind == "on_tool_start":
                 tool_name = event.get("name", "")
                 run_id = event.get("run_id", "")
+                has_content = True
                 yield _sse({"type": "tool_start", "tool": tool_name, "tool_call_id": run_id})
 
             elif kind == "on_tool_end":
@@ -75,6 +85,16 @@ async def stream_agent_response(
                 yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
 
     except Exception as e:
+        _log(f"   ❌ SSE streaming error: {e!s}")
         yield _sse({"type": "error", "message": f"An error occurred: {e!s}"})
+
+    # If the agent completed without producing any text or tool events,
+    # it likely means the model call failed silently (e.g., rate limit).
+    if not has_content:
+        _log(f"   ⚠️ Empty response for session={session_id} — model may be rate-limited")
+        yield _sse({
+            "type": "error",
+            "message": "The AI service didn't respond. This usually means the API is temporarily busy (rate limit). Please wait a moment and try again."
+        })
 
     yield _sse({"type": "done"})

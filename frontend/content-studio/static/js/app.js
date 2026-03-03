@@ -2570,6 +2570,21 @@ class ContentStudioApp {
         imagePath = this.sanitizeImagePath(imagePath);
         if (!imagePath) return;
 
+        // Pre-validate: only add to gallery if image actually loads
+        const testImg = new window.Image();
+        testImg.onerror = () => {
+            console.warn('🚫 Image not found, skipping gallery add:', imagePath);
+            const idx = this.generatedImages.indexOf(imagePath);
+            if (idx > -1) this.generatedImages.splice(idx, 1);
+        };
+        testImg.onload = () => {
+            this._addImageCardToGallery(imagePath, caption, hashtags);
+        };
+        testImg.src = imagePath;
+    }
+
+    // Internal: actually create and add the gallery card (called after image validated)
+    _addImageCardToGallery(imagePath, caption, hashtags) {
         // Save metadata for this image (for persistence)
         if (!this.generatedImagesMeta) this.generatedImagesMeta = {};
         this.generatedImagesMeta[imagePath] = {
