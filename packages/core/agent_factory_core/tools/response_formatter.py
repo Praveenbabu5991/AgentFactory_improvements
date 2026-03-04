@@ -38,6 +38,16 @@ def format_response_for_user(
         input_placeholder=input_placeholder,
     )
     # Result is already JSON string from the internal implementation
-    if isinstance(result, str):
-        return result
-    return json.dumps(result)
+    json_str = result if isinstance(result, str) else json.dumps(result)
+
+    # Append a stop signal that the LLM sees in the ToolMessage.
+    # This mechanically reinforces the prompt-level STOP instruction.
+    # The streaming layer strips this suffix before sending to the frontend.
+    return (
+        json_str
+        + "\n\n---\n"
+        "IMPORTANT: This response has been delivered to the user's screen with interactive buttons. "
+        "Your turn is COMPLETE. STOP IMMEDIATELY. "
+        "Do NOT call any more tools, do NOT delegate to subagents, do NOT generate text. "
+        "The user will click a button or type a response when ready."
+    )

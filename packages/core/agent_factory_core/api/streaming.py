@@ -145,6 +145,13 @@ async def stream_agent_response(
                         output = _sanitize_unicode(output)
                     else:
                         output = str(output)
+                    # For format_response_for_user, strip the stop-signal suffix
+                    # (appended by the tool wrapper to halt the LLM) before sending to frontend
+                    if tool_name == "format_response_for_user":
+                        sep = "\n\n---\nIMPORTANT:"
+                        idx = output.find(sep)
+                        if idx != -1:
+                            output = output[:idx]
                     # Don't truncate format_response_for_user — frontend needs full JSON
                     max_len = 16000 if tool_name == "format_response_for_user" else 4000
                     yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
