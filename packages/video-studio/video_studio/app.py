@@ -107,6 +107,27 @@ async def chat_stream(request: ChatRequest):
         if tone_match:
             brand["tone"] = tone_match.group(1).strip()
 
+    # Fallback: extract additional fields from message text if not in attachments
+    if brand:
+        text = request.message
+        if not brand.get("overview"):
+            m = re.search(r"\[Company Overview:\s*(.+?)\]", text)
+            if m:
+                brand["overview"] = m.group(1).strip()
+        if not brand.get("target_audience"):
+            m = re.search(r"\[TARGET AUDIENCE:\s*(.+?)\]", text)
+            if m:
+                brand["target_audience"] = m.group(1).strip()
+        if not brand.get("products_services"):
+            m = re.search(r"\[PRODUCTS/SERVICES:\s*(.+?)\]", text)
+            if m:
+                brand["products_services"] = m.group(1).strip()
+        # Extract name from [Current brand context: CompanyName, ...] format
+        if not brand.get("name"):
+            m = re.search(r"\[Current brand context:\s*(.+?),", text)
+            if m:
+                brand["name"] = m.group(1).strip()
+
     if brand:
         input_data["brand"] = brand
 

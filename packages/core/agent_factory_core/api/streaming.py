@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from collections.abc import AsyncGenerator
@@ -90,6 +91,7 @@ async def stream_agent_response(
     input_data: dict,
     config: dict,
     session_id: str,
+    max_retries: int = 2,
 ) -> AsyncGenerator[str, None]:
     """Stream agent response as Server-Sent Events.
 
@@ -100,70 +102,82 @@ async def stream_agent_response(
     - {"type": "tool_end", "tool": "...", "content": "..."}
     - {"type": "done"}
     - {"type": "error", "message": "..."}
+
+    Retries automatically when the model returns an empty response
+    (common with Gemini API intermittent failures).
     """
     yield _sse({"type": "session", "session_id": session_id})
 
-    has_content = False  # Track if we sent any text or tool events
-    last_error = None  # Capture last error from events
+    for attempt in range(max_retries):
+        has_content = False  # Track if we sent any text or tool events
+        last_error = None  # Capture last error from events
 
-    # Inject a callback handler to capture LLM errors that LangGraph swallows
-    error_cb = _ErrorCapturingCallback()
-    existing_callbacks = config.get("callbacks", [])
-    config = {**config, "callbacks": [*existing_callbacks, error_cb]}
+        # Inject a callback handler to capture LLM errors that LangGraph swallows
+        error_cb = _ErrorCapturingCallback()
+        existing_callbacks = config.get("callbacks", [])
+        attempt_config = {**config, "callbacks": [*existing_callbacks, error_cb]}
 
-    try:
-        async for event in agent.astream_events(input_data, config=config, version="v2"):
-            kind = event.get("event", "")
+        try:
+            async for event in agent.astream_events(input_data, config=attempt_config, version="v2"):
+                kind = event.get("event", "")
 
-            if kind == "on_chat_model_stream":
-                chunk = event.get("data", {}).get("chunk")
-                if chunk and hasattr(chunk, "content") and chunk.content:
-                    text = chunk.content
-                    if isinstance(text, str) and text:
-                        has_content = True
-                        yield _sse({"type": "text", "content": _sanitize_unicode(text)})
+                if kind == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        text = chunk.content
+                        if isinstance(text, str) and text:
+                            has_content = True
+                            yield _sse({"type": "text", "content": _sanitize_unicode(text)})
 
-            elif kind == "on_tool_start":
-                tool_name = event.get("name", "")
-                run_id = event.get("run_id", "")
-                has_content = True
-                yield _sse({"type": "tool_start", "tool": tool_name, "tool_call_id": run_id})
+                elif kind == "on_tool_start":
+                    tool_name = event.get("name", "")
+                    run_id = event.get("run_id", "")
+                    has_content = True
+                    yield _sse({"type": "tool_start", "tool": tool_name, "tool_call_id": run_id})
 
-            elif kind == "on_tool_end":
-                tool_name = event.get("name", "")
-                output = event.get("data", {}).get("output", "")
-                # Extract .content from ToolMessage objects
-                if hasattr(output, "content"):
-                    output = output.content
-                if isinstance(output, str):
-                    output = _sanitize_unicode(output)
-                else:
-                    output = str(output)
-                # Don't truncate format_response_for_user — frontend needs full JSON
-                max_len = 16000 if tool_name == "format_response_for_user" else 4000
-                yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
+                elif kind == "on_tool_end":
+                    tool_name = event.get("name", "")
+                    output = event.get("data", {}).get("output", "")
+                    # Extract .content from ToolMessage objects
+                    if hasattr(output, "content"):
+                        output = output.content
+                    if isinstance(output, str):
+                        output = _sanitize_unicode(output)
+                    else:
+                        output = str(output)
+                    # Don't truncate format_response_for_user — frontend needs full JSON
+                    max_len = 16000 if tool_name == "format_response_for_user" else 4000
+                    yield _sse({"type": "tool_end", "tool": tool_name, "content": output[:max_len]})
 
-            # Capture errors/retries from LangGraph events
-            elif kind in ("on_chain_error", "on_llm_error", "on_chat_model_error"):
-                error = event.get("data", {})
-                if isinstance(error, dict):
-                    err_msg = error.get("error", error.get("message", str(error)))
-                else:
-                    err_msg = str(error)
-                last_error = err_msg
-                _log(f"   ❌ {kind}: {err_msg}")
+                # Capture errors/retries from LangGraph events
+                elif kind in ("on_chain_error", "on_llm_error", "on_chat_model_error"):
+                    error = event.get("data", {})
+                    if isinstance(error, dict):
+                        err_msg = error.get("error", error.get("message", str(error)))
+                    else:
+                        err_msg = str(error)
+                    last_error = err_msg
+                    _log(f"   ❌ {kind}: {err_msg}")
 
-    except Exception as e:
-        error_str = str(e)
-        _log(f"   ❌ SSE streaming error: {error_str}")
-        # Extract useful details from common Gemini errors
-        detail = _extract_error_detail(e)
-        yield _sse({"type": "error", "message": detail})
+        except Exception as e:
+            error_str = str(e)
+            _log(f"   ❌ SSE streaming error: {error_str}")
+            # Extract useful details from common Gemini errors
+            detail = _extract_error_detail(e)
+            yield _sse({"type": "error", "message": detail})
 
-    # If the agent completed without producing any text or tool events,
-    # it likely means the model call failed silently (e.g., rate limit).
-    if not has_content:
-        # Priority: callback-captured errors > event errors > finish_reason > generic
+        # If we got content, we're done — no retry needed
+        if has_content:
+            break
+
+        # Empty response — retry if we have attempts left
+        if attempt < max_retries - 1:
+            delay = 2 * (attempt + 1)  # 2s, 4s
+            _log(f"   🔄 Empty response for session={session_id}, retrying in {delay}s (attempt {attempt + 1}/{max_retries})...")
+            await asyncio.sleep(delay)
+            continue
+
+        # Final attempt failed — report the error
         if error_cb.errors:
             detail = _extract_error_detail(error_cb.errors[-1])
         elif last_error:
@@ -172,7 +186,7 @@ async def stream_agent_response(
             detail = f"Model stopped unexpectedly (finish_reason={error_cb.last_finish_reason})"
         else:
             detail = "No response from model — the API returned an empty response."
-        _log(f"   ⚠️ Empty response for session={session_id} — {detail}")
+        _log(f"   ⚠️ Empty response for session={session_id} after {max_retries} attempts — {detail}")
         yield _sse({
             "type": "error",
             "message": f"Sorry, the AI model didn't respond. {detail}"

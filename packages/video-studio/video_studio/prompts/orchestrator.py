@@ -150,17 +150,20 @@ MANDATORY: Suggest 3 DIVERSE video ideas. Each must be distinctly different in t
 [END CONTEXT]
 ```
 
-**After VideoAgent returns ideas, present them with numbered buttons:**
+**After VideoAgent returns ideas, present them with EXACTLY 3 numbered buttons:**
+
+**CRITICAL: Put the VideoAgent's FULL idea descriptions in response_text. force_choices has ONLY 3 short-label buttons.**
 
 ```python
 format_response_for_user(
-    response_text="Based on [Brand Name]'s story and audience, here are 3 video concepts:\\n\\n**1. [Concept Title]**\\n[Full description — story, visual concept, audio concept, why it resonates with target audience]\\n\\n**2. [Concept Title]**\\n[Full description]\\n\\n**3. [Concept Title]**\\n[Full description]\\n\\n**Which idea do you like?** Pick 1, 2, or 3!",
-    force_choices='[{"id": "idea_1", "label": "1️⃣ [Title]", "value": "1", "icon": "1️⃣"}, {"id": "idea_2", "label": "2️⃣ [Title]", "value": "2", "icon": "2️⃣"}, {"id": "idea_3", "label": "3️⃣ [Title]", "value": "3", "icon": "3️⃣"}]',
+    response_text="Based on [Brand Name]'s story and audience, here are 3 video concepts:\\n\\n**1. \\"[Concept Title]\\"**\\n- Story: [story description from VideoAgent]\\n- Visual Concept: [visual description from VideoAgent]\\n- Audio: [audio description from VideoAgent]\\n- Target Appeal: [why it resonates]\\n\\n**2. \\"[Concept Title]\\"**\\n- Story: [story description]\\n- Visual Concept: [visual description]\\n- Audio: [audio description]\\n- Target Appeal: [why it resonates]\\n\\n**3. \\"[Concept Title]\\"**\\n- Story: [story description]\\n- Visual Concept: [visual description]\\n- Audio: [audio description]\\n- Target Appeal: [why it resonates]\\n\\n**Which idea do you like?** Pick 1, 2, or 3!",
+    force_choices='[{"id": "idea_1", "label": "1️⃣ [Short Title Only]", "value": "1", "icon": "1️⃣"}, {"id": "idea_2", "label": "2️⃣ [Short Title Only]", "value": "2", "icon": "2️⃣"}, {"id": "idea_3", "label": "3️⃣ [Short Title Only]", "value": "3", "icon": "3️⃣"}]',
     choice_type="single_select",
     allow_free_input=True,
     input_hint="Or describe your own concept"
 )
 ```
+**EXACTLY 3 buttons in force_choices. Value is just "1", "2", or "3". All descriptions go in response_text ONLY.**
 **STOP — wait for user to pick.**
 
 ### Step 3b: User Has Own Idea
@@ -288,6 +291,14 @@ When presenting a generated video, ALWAYS use this clear format:
 
 **NEVER skip calling `format_response_for_user`. Every single response must go through this tool.**
 
+### CRITICAL: force_choices Rules
+
+**force_choices is a JSON array of button objects. STRICT RULES:**
+1. **Idea selection**: EXACTLY 3 buttons. Each button: `{"id": "idea_1", "label": "1️⃣ Short Title", "value": "1", "icon": "1️⃣"}`. The `value` MUST be just "1", "2", or "3" — NOT the full description.
+2. **Put ALL descriptions in response_text**, NOT in force_choices. force_choices are buttons — keep labels SHORT (under 30 chars).
+3. **NEVER put descriptions, visual concepts, audio details, or durations in force_choices.** Those go ONLY in response_text.
+4. **Every button needs**: id, label, value, icon. Label = icon + short title. Value = what gets sent when clicked.
+
 ### format_response_for_user Examples for Every Step:
 
 **Brand Setup → Video Type Selection:**
@@ -312,10 +323,10 @@ format_response_for_user(
 )
 ```
 
-**Idea Selection (after VideoAgent SUGGEST_IDEAS):**
+**Idea Selection (after VideoAgent SUGGEST_IDEAS) — EXACTLY 3 buttons, value="1"/"2"/"3":**
 ```python
 format_response_for_user(
-    response_text="Here are 3 video concepts:\\n\\n**1. [Title]**\\n[Description]\\n\\n**2. [Title]**\\n[Description]\\n\\n**3. [Title]**\\n[Description]\\n\\nWhich idea do you like?",
+    response_text="Here are 3 video concepts:\\n\\n**1. \\"[Title]\\"**\\n- Story: [full story]\\n- Visual: [full visual]\\n- Audio: [full audio]\\n\\n**2. \\"[Title]\\"**\\n- Story: [full story]\\n- Visual: [full visual]\\n- Audio: [full audio]\\n\\n**3. \\"[Title]\\"**\\n- Story: [full story]\\n- Visual: [full visual]\\n- Audio: [full audio]\\n\\nWhich idea do you like?",
     force_choices='[{"id": "idea_1", "label": "1️⃣ [Title]", "value": "1", "icon": "1️⃣"}, {"id": "idea_2", "label": "2️⃣ [Title]", "value": "2", "icon": "2️⃣"}, {"id": "idea_3", "label": "3️⃣ [Title]", "value": "3", "icon": "3️⃣"}]',
     choice_type="single_select",
     allow_free_input=True,

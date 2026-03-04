@@ -1511,6 +1511,30 @@ class MarketingVideoApp {
         
         // Build attachments from brand config
         const attachments = [];
+
+        // Send full brand_config attachment with every message
+        // This ensures BrandContextMiddleware always has complete brand context
+        // (prevents brand state from being overwritten with partial data on message 2+)
+        if (this.brandConfig.companyName) {
+            const bc = this.brandConfig.brandColors;
+            attachments.push({
+                type: 'brand_config',
+                config: {
+                    name: this.brandConfig.companyName,
+                    industry: this.brandConfig.industry || '',
+                    tone: this.brandConfig.tone || 'creative',
+                    overview: this.brandConfig.companyOverview || '',
+                    target_audience: this.brandConfig.targetAudience || '',
+                    products_services: this.brandConfig.productsServices || '',
+                    logo_path: this.brandConfig.logoFullPath || '',
+                    colors: bc ? [bc.dominant, ...(bc.palette || [])].filter(Boolean) : [],
+                    marketing_goals: this.brandConfig.marketingGoals || [],
+                    brand_messaging: this.brandConfig.brandMessaging || '',
+                    competitive_positioning: this.brandConfig.competitivePositioning || ''
+                }
+            });
+        }
+
         if (this.brandConfig.logoPath && this.brandConfig.brandColors) {
             attachments.push({
                 type: 'logo',
@@ -1781,92 +1805,76 @@ class MarketingVideoApp {
         let assistantMessage = '';
         let messageElement = null;
         let firstContentReceived = false;
-        
+        let lastStructuredResponse = null;
+        let suppressText = false; // When true, skip rendering streamed text (format_response_for_user will handle it)
+
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-            
+
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     try {
                         const data = JSON.parse(line.slice(6));
-                        
+
                         if (data.type === 'session') {
                             this.sessionId = data.session_id;
-                        } else if (data.type === 'status') {
-                            // Handle status events (e.g., "Generating your video...")
-                            // Do NOT hide processing indicator — video gen takes 1-2 minutes
-                            // Instead, update the indicator with the real status
-                            const statusMsg = data.message || 'Processing...';
-                            this.updateProcessingForVideoGeneration(statusMsg);
-                        } else if (data.type === 'video_generated') {
-                            // Handle dedicated video generation event
-                            const videoUrl = data.url;
-                            if (videoUrl && !this.generatedImages.includes(videoUrl)) {
-                                this.generatedImages.push(videoUrl);
-                                const caption = data.caption || '';
-                                const hashtags = data.hashtags || [];
-                                if (caption || hashtags.length > 0) {
-                                    this.addVideoToGalleryWithCaption(videoUrl, caption, hashtags);
-                                } else {
-                                    this.addImageToGallery(videoUrl);
-                                }
-                                this.saveImagesToStorage();
-                            }
                         } else if (data.type === 'text') {
-                            // Detect structured JSON from format_response_for_user
-                            // Check for: wrapper format OR direct structured JSON
-                            const contentTrimmed = data.content.trim();
-                            const isStructuredContent = (
-                                // Wrapper format: {'result': '...'} or {"result": "..."}
-                                ((contentTrimmed.includes("{'result':") || contentTrimmed.includes('{"result":')) &&
-                                 contentTrimmed.includes('has_choices')) ||
-                                // Direct structured JSON: {"text": "...", "has_choices": ...}
-                                (contentTrimmed.startsWith('{') && contentTrimmed.includes('"has_choices"') &&
-                                 contentTrimmed.includes('"text"'))
-                            );
-
-                            if (isStructuredContent) {
-                                // Try to extract structured response from this chunk
-                                const structuredResponse = this.parseStructuredResponse(data.content);
-                                if (structuredResponse) {
-                                    // Hide processing indicator when first content arrives
-                                    if (!firstContentReceived) {
-                                        firstContentReceived = true;
-                                        this.hideProcessingIndicator();
-                                    }
-                                    if (!messageElement) {
-                                        messageElement = this.addMessage('', 'assistant', true);
-                                    }
-                                    // Use only the text from structured response, not the wrapper/JSON
-                                    assistantMessage = structuredResponse.text;
-                                    this.handleStructuredResponse(structuredResponse, messageElement);
-                                    // Don't accumulate the wrapper text
-                                    continue;
-                                } else {
-                                    // If we can't parse it, skip it entirely - don't display raw JSON
-                                    console.log('⚠️ Skipping structured chunk that could not be parsed');
-                                    continue;
-                                }
-                            }
-
                             // Hide processing indicator when first content arrives
                             if (!firstContentReceived) {
                                 firstContentReceived = true;
                                 this.hideProcessingIndicator();
                             }
-
-                            // Regular text streaming
+                            // If we already captured a structured response, suppress further text
+                            // to avoid showing duplicate text above choice buttons
+                            if (suppressText) continue;
                             assistantMessage += data.content;
                             if (!messageElement) {
                                 messageElement = this.addMessage('', 'assistant', true);
                             }
                             this.updateMessage(messageElement, assistantMessage);
+                        } else if (data.type === 'tool_start') {
+                            // Show tool execution in processing indicator
+                            const toolName = data.tool || '';
+                            if (toolName && toolName !== 'format_response_for_user') {
+                                this.updateProcessingStatus(`Using ${toolName}...`, toolName);
+                            }
+                        } else if (data.type === 'tool_end') {
+                            // Capture structured JSON from format_response_for_user
+                            if (data.tool === 'format_response_for_user' && data.content) {
+                                try {
+                                    lastStructuredResponse = JSON.parse(data.content);
+                                    // Suppress any further streamed text since we'll render from structured response
+                                    suppressText = true;
+                                } catch (parseErr) {
+                                    console.log('Could not parse format_response_for_user output:', parseErr);
+                                }
+                            }
+                            // Capture video from generate_video tool
+                            if (data.tool === 'generate_video' && data.content) {
+                                try {
+                                    const toolResult = JSON.parse(data.content);
+                                    const videoPath = toolResult.video_path || toolResult.output_path || '';
+                                    if (videoPath && !this.generatedImages.includes(videoPath)) {
+                                        this.generatedImages.push(videoPath);
+                                        const caption = toolResult.caption || '';
+                                        const hashtags = toolResult.hashtags || [];
+                                        if (caption || hashtags.length > 0) {
+                                            this.addVideoToGalleryWithCaption(videoPath, caption, hashtags);
+                                        } else {
+                                            this.addImageToGallery(videoPath);
+                                        }
+                                        this.saveImagesToStorage();
+                                    }
+                                } catch (e) {
+                                    // Not JSON or no video path - that's fine
+                                }
+                            }
                         } else if (data.type === 'error') {
-                            // Show error message from backend
+                            // Show error to user instead of silently swallowing
                             if (!firstContentReceived) {
                                 firstContentReceived = true;
                                 this.hideProcessingIndicator();
@@ -1879,15 +1887,23 @@ class MarketingVideoApp {
                             assistantMessage = `⚠️ ${errorMsg}`;
                             this.updateMessage(messageElement, assistantMessage);
                         } else if (data.type === 'done') {
-                            // Try to parse as structured response from format_response_for_user tool
-                            const structuredResponse = this.parseStructuredResponse(assistantMessage);
+                            // Always hide processing indicator on done
+                            this.hideProcessingIndicator();
+
+                            // Prefer structured response captured from tool_end
+                            let structuredResponse = lastStructuredResponse;
+
+                            // Fallback: try to parse from streamed text
+                            if (!structuredResponse) {
+                                structuredResponse = this.parseStructuredResponse(assistantMessage);
+                            }
 
                             if (structuredResponse) {
-                                // Handle structured response with choices
-                                // Clear any accumulated wrapper text
-                                if (messageElement) {
-                                    messageElement.innerHTML = '';
+                                // If text was suppressed and no message element exists, create one now
+                                if (!messageElement) {
+                                    messageElement = this.addMessage('', 'assistant', true);
                                 }
+                                // Handle structured response with choices
                                 this.handleStructuredResponse(structuredResponse, messageElement);
                             } else {
                                 // Fallback: Handle as regular text response
@@ -1906,8 +1922,7 @@ class MarketingVideoApp {
                                 }
                             }
 
-                            // ALWAYS scan full message for video/media URLs
-                            // (structured response text may not contain the video URL)
+                            // Scan for video/media URLs in full message
                             this.parseAssistantResponse(assistantMessage);
                             this.updateRightPanel(assistantMessage);
 
@@ -1918,7 +1933,7 @@ class MarketingVideoApp {
                 }
             }
         }
-        
+
         // Always ensure processing indicator is cleaned up when stream ends
         if (this.isProcessing) {
             this.hideProcessingIndicator();
