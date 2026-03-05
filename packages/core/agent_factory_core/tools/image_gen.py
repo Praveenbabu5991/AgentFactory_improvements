@@ -27,8 +27,12 @@ def reset_generation_counter():
 def _check_and_block() -> str | None:
     """Return cached result if an image was already generated this request, else None."""
     if _generation_call_count >= 1 and _generation_last_result:
-        print("   ⛔ BLOCKED: Image generation already called in this request. Returning previous result.")
-        return _generation_last_result
+        print("   ⛔ BLOCKED: Image generation already called in this request. Returning previous result.", flush=True)
+        return json.dumps({
+            "status": "already_generated",
+            "message": "STOP. An image was already generated in this turn. Do NOT call any more image generation tools. Present the previously generated result to the user and STOP immediately. Wait for the user's next message before generating anything else.",
+            "previous_result": json.loads(_generation_last_result),
+        })
     return None
 
 
