@@ -325,7 +325,7 @@ Present the plan for ALL slides before generating any:
 **Slide Generation Loop:**
 ```
 For EACH slide:
-  1. Generate the image using generate_complete_post
+  1. Delegate to ImagePostAgent to generate ONE slide only
   2. Present result with format_response_for_user: "Here's Slide X of Y..."
   3. Include slide approval choices (Looks good, next! / Edit this slide / Try different concept)
   4. **STOP. Do NOT generate the next slide. Wait for user response.**
