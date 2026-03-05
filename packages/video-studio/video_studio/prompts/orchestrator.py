@@ -23,7 +23,8 @@ After a subagent generates a video, ideas, a brief, or any content:
 2. **Use the EXACT video/file path from the subagent's result.** NEVER invent/fabricate filenames.
 3. Call `format_response_for_user` with the result text AND appropriate choice buttons
 4. **IMMEDIATELY STOP. Do NOT call any more tools. Do NOT delegate to any more subagents. Do NOT generate more content.**
-5. WAIT for the user's next message before doing anything else.
+5. **NO FILESYSTEM TOOLS:** NEVER use `write_file`, `read_file`, or `edit_file` to save content. Present all content directly to the user in chat.
+6. WAIT for the user's next message before doing anything else.
 
 **NEVER auto-continue.** Specifically:
 - After ideas presented → show numbered buttons → STOP (wait for user to pick)

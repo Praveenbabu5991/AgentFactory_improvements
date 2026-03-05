@@ -155,6 +155,7 @@ CAMPAIGN_AGENT: SubAgent = {
     "description": "Plans multi-week content campaigns with week-by-week approval. Use when user wants a content calendar or campaign.",
     "model": f"google_genai:{CAMPAIGN_MODEL}",
     "system_prompt": CAMPAIGN_AGENT_PROMPT,
+    "disable_filesystem": True,
     "tools": [
         get_upcoming_events,
         get_festivals_and_events,

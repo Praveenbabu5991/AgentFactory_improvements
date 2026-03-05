@@ -77,6 +77,9 @@ class SubAgent(TypedDict):
     skills: NotRequired[list[str]]
     """Skill source paths for SkillsMiddleware."""
 
+    disable_filesystem: NotRequired[bool]
+    """If true, do not automatically include FilesystemMiddleware."""
+
 
 class CompiledSubAgent(TypedDict):
     """A pre-compiled agent spec.

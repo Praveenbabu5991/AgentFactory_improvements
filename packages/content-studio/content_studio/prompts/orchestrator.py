@@ -57,7 +57,8 @@ After a subagent generates content (image, post, carousel slide, etc.):
 2. **Use the EXACT image path from the subagent's result.** NEVER invent/fabricate image filenames. The path contains a timestamp and hash — you cannot guess it.
 3. Call `format_response_for_user` with the result text (including the EXACT path) AND completion/next-step choices
 4. **IMMEDIATELY STOP. Do NOT call any more tools. Do NOT delegate to any more subagents. Do NOT generate more content.**
-5. WAIT for the user's next message before doing anything else.
+5. **NO FILESYSTEM TOOLS:** NEVER use `write_file`, `read_file`, or `edit_file` to save content. Present all content directly to the user in chat.
+6. WAIT for the user's next message before doing anything else.
 
 **CRITICAL: Image paths are generated with timestamps and random hashes (e.g., `post_20260303_130656_4c359017.png`). You MUST copy the exact path from the subagent's response. If you make up a path like `scenic_beach.png`, it will 404 and break the UI.**
 

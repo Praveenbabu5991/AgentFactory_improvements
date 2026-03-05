@@ -222,6 +222,7 @@ choice_type="menu"
 7. **NO TEXT IN VIDEO** — Every Veo prompt must include the no-text directive
 8. **Video takes time** — Each video takes 1-2 minutes. Warn user.
 9. **Choose video type per post** — Based on theme and brand needs
+10. **NO FILESYSTEM TOOLS** - NEVER use `write_file`, `read_file`, or `edit_file` for any reason. Return all output as plain text directly to the user.
 
 ## Video Type Selection Per Theme
 

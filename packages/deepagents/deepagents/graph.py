@@ -238,7 +238,10 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
             subagent_summarization_defaults = compute_summarization_defaults(subagent_model)
             subagent_middleware: list[AgentMiddleware[Any, Any, Any]] = [
                 TodoListMiddleware(),
-                FilesystemMiddleware(backend=backend),
+            ]
+            if not spec.get("disable_filesystem", False):
+                subagent_middleware.append(FilesystemMiddleware(backend=backend))
+            subagent_middleware.extend([
                 SummarizationMiddleware(
                     model=subagent_model,
                     backend=backend,
@@ -249,7 +252,7 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
                 ),
                 AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
                 PatchToolCallsMiddleware(),
-            ]
+            ])
             subagent_skills = spec.get("skills")
             if subagent_skills:
                 subagent_middleware.append(SkillsMiddleware(backend=backend, sources=subagent_skills))
