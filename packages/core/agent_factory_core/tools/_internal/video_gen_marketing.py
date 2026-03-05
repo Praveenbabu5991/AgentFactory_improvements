@@ -471,6 +471,9 @@ def generate_video(
     brand_name: str = "",
     brand_colors: list[str] = [],
     cta_text: str = "",
+    company_overview: str = "",
+    target_audience: str = "",
+    products_services: str = "",
 ) -> dict:
     """
     Generate a video using Veo 3.1 — the unified video generation tool.
@@ -540,14 +543,24 @@ def generate_video(
         else:
             config_kwargs["negative_prompt"] = base_negatives
 
-        # Enhance prompt with brand identity
+        # Enhance prompt with full brand identity
         enhanced_prompt = prompt
+        brand_parts = []
         if brand_name:
-            brand_suffix = f"\nBrand identity: This video is for {brand_name}."
-            if brand_colors:
-                brand_suffix += f" Brand color palette: {', '.join(str(c) for c in brand_colors[:3])}."
-            enhanced_prompt = prompt.rstrip() + brand_suffix
-            print(f"  + Enhanced prompt with brand identity for: {brand_name}", flush=True)
+            brand_parts.append(f"This marketing video is for {brand_name}.")
+        if brand_colors:
+            brand_parts.append(f"Brand color palette: {', '.join(str(c) for c in brand_colors[:3])}.")
+        if company_overview:
+            brand_parts.append(f"Company: {company_overview}")
+        if target_audience:
+            brand_parts.append(f"Target audience: {target_audience}")
+        if products_services:
+            brand_parts.append(f"Products/services: {products_services}")
+        if cta_text:
+            brand_parts.append(f"Call-to-action theme: {cta_text}")
+        if brand_parts:
+            enhanced_prompt = prompt.rstrip() + "\nBrand identity: " + " ".join(brand_parts)
+            print(f"  + Enhanced prompt with full brand context for: {brand_name or 'unnamed'}", flush=True)
 
         # ----------------------------------------------------------------
         # Veo 3.1 supports TWO mutually exclusive modes:
@@ -557,40 +570,17 @@ def generate_video(
         # ----------------------------------------------------------------
 
         if not image_path and logo_path and brand_name:
-            # ── MODE A: MOTION GRAPHICS (text-to-video + reference images) ──
-            # Step 1: Generate a branded starting frame via Gemini image gen
-            # Step 2: Pass branded frame + logo as reference_images to Veo
-            #         (text-to-video, NOT image-to-video)
-            print(f"  🎨 Generating branded starting frame for Motion Graphics...", flush=True)
-            branded_frame_path = _generate_branded_frame(
-                prompt=prompt,
-                logo_path=logo_path,
-                brand_name=brand_name,
-                brand_colors=brand_colors,
-                cta_text=cta_text,
-                aspect_ratio=aspect_ratio,
-                output_dir=output_dir,
-            )
+            # ── MODE A: MOTION GRAPHICS — logo as starting frame (image-to-video) ──
+            # Pass the logo directly as Veo's starting frame (image= parameter).
+            # All brand context is already embedded in enhanced_prompt above.
+            # No Gemini image generation. No MoviePy. Simple and direct.
+            video_config = types.GenerateVideosConfig(**config_kwargs)
+            gen_kwargs = {
+                "model": video_model,
+                "prompt": enhanced_prompt,
+                "config": video_config,
+            }
 
-            ref_images_list = []
-
-            # Add branded frame as reference image
-            if branded_frame_path and os.path.exists(branded_frame_path):
-                try:
-                    frame_img = Image.open(branded_frame_path)
-                    if frame_img.mode in ('RGBA', 'LA', 'P'):
-                        frame_img = frame_img.convert('RGB')
-                    buf = io.BytesIO()
-                    frame_img.save(buf, format='JPEG')
-                    ref_images_list.append(types.VideoGenerationReferenceImage(
-                        image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
-                        reference_type="asset"
-                    ))
-                    print(f"  ✅ Branded frame added as reference image", flush=True)
-                except Exception as e:
-                    print(f"  ⚠️ Could not load branded frame as reference: {e}", flush=True)
-
-            # Add logo as another reference image
             resolved_logo = _resolve_image_path(logo_path)
             if os.path.exists(resolved_logo):
                 try:
@@ -599,52 +589,15 @@ def generate_video(
                         logo_img = logo_img.convert('RGB')
                     buf = io.BytesIO()
                     logo_img.save(buf, format='JPEG')
-                    ref_images_list.append(types.VideoGenerationReferenceImage(
-                        image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
-                        reference_type="asset"
-                    ))
-                    print(f"  ✅ Logo added as reference image", flush=True)
+                    gen_kwargs["image"] = types.Image(
+                        image_bytes=buf.getvalue(), mime_type="image/jpeg"
+                    )
+                    print(f"  ✅ Logo loaded as starting frame: {logo_path}", flush=True)
+                    print(f"  📎 Mode: image-to-video (logo as starting frame)", flush=True)
                 except Exception as e:
-                    print(f"  ⚠️ Could not load logo as reference: {e}", flush=True)
-
-            # Add any explicit user-provided reference images (up to 3 total)
-            if reference_image_paths:
-                for ref_path in reference_image_paths:
-                    if len(ref_images_list) >= 3:
-                        break
-                    resolved = _resolve_image_path(ref_path)
-                    if os.path.exists(resolved) and resolved != resolved_logo:
-                        try:
-                            ref_img = Image.open(resolved)
-                            if ref_img.mode in ('RGBA', 'LA', 'P'):
-                                ref_img = ref_img.convert('RGB')
-                            buf = io.BytesIO()
-                            ref_img.save(buf, format='JPEG')
-                            ref_images_list.append(types.VideoGenerationReferenceImage(
-                                image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
-                                reference_type="asset"
-                            ))
-                            print(f"  ✅ Loaded reference image: {ref_path}", flush=True)
-                        except Exception as e:
-                            print(f"  ⚠️ Could not load reference image {ref_path}: {e}", flush=True)
-
-            if ref_images_list:
-                config_kwargs["reference_images"] = ref_images_list
-                # Veo doesn't support negative_prompt with reference_images
-                if "negative_prompt" in config_kwargs:
-                    neg = config_kwargs.pop("negative_prompt")
-                    enhanced_prompt = enhanced_prompt.rstrip() + f"\nAvoid: {neg}."
-                    print(f"  ℹ️ Moved negative_prompt into prompt text (required with reference images)", flush=True)
-
-            print(f"  📎 Mode: text-to-video with {len(ref_images_list)} reference image(s)", flush=True)
-
-            video_config = types.GenerateVideosConfig(**config_kwargs)
-            gen_kwargs = {
-                "model": video_model,
-                "prompt": enhanced_prompt,
-                "config": video_config,
-            }
-            # NO image= — this is text-to-video with reference images
+                    print(f"  ⚠️ Could not load logo: {e} — falling back to text-to-video", flush=True)
+            else:
+                print(f"  ⚠️ Logo not found: {resolved_logo} — falling back to text-to-video", flush=True)
 
         elif image_path:
             # ── MODE B: VIDEO FROM IMAGE (image-to-video, NO reference_images) ──

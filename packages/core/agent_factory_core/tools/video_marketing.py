@@ -23,6 +23,9 @@ def generate_video(
     brand_name: str = "",
     brand_colors: str = "",
     cta_text: str = "",
+    company_overview: str = "",
+    target_audience: str = "",
+    products_services: str = "",
 ) -> str:
     """Generate a marketing video using Veo 3.1.
 
@@ -31,8 +34,9 @@ def generate_video(
 
     IMPORTANT: Do NOT include text/titles/company name in the Veo prompt.
     Veo cannot render text correctly. Branding is built INTO the video automatically:
-    - Motion Graphics (no image_path): A branded starting frame is generated via
-      Gemini image gen (logo + company name + brand colors), then animated by Veo.
+    - Motion Graphics (no image_path): Logo is used directly as Veo's starting
+      frame (image-to-video mode). All brand context (company overview, audience,
+      products, colors, CTA) is embedded in the prompt.
     - Video from Image (with image_path): Logo + company name are composited onto
       the product image, then animated by Veo.
 
@@ -44,13 +48,16 @@ def generate_video(
         duration_seconds: Video duration (5-8).
         aspect_ratio: Video aspect ratio ("9:16" for reels, "16:9" for landscape).
         negative_prompt: Elements to exclude (e.g. "blurry, low quality, distorted").
-        logo_path: Path to brand logo — composited onto starting frame or used
-            to generate branded frame (motion graphics). Also passed as Veo
-            reference image for consistency throughout the video.
-        brand_name: Company name — rendered on starting frame + guides visual
-            identity in the Veo prompt.
+        logo_path: Path to brand logo — used directly as Veo starting frame
+            (motion graphics, image-to-video mode) or composited onto source
+            image (video from image).
+        brand_name: Company name — guides visual brand identity in the prompt.
         brand_colors: JSON list of hex colors (e.g. '["#FF6B35", "#2EC4B6"]').
         cta_text: Call-to-action context (e.g. "Shop Now") — guides visual tone.
+        company_overview: Company description/mission — embedded in prompt for
+            brand context.
+        target_audience: Target audience description — embedded in prompt.
+        products_services: Products/services description — embedded in prompt.
     """
     colors_list = []
     if brand_colors:
@@ -65,6 +72,9 @@ def generate_video(
         negative_prompt=negative_prompt, logo_path=logo_path,
         brand_name=brand_name, brand_colors=colors_list,
         cta_text=cta_text,
+        company_overview=company_overview,
+        target_audience=target_audience,
+        products_services=products_services,
     )
     return json.dumps(result)
 
