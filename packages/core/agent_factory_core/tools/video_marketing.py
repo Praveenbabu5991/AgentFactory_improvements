@@ -30,8 +30,11 @@ def generate_video(
     [Camera + lens] + [Subject] + [Action] + [Setting + atmosphere] + [Style + Audio].
 
     IMPORTANT: Do NOT include text/titles/company name in the Veo prompt.
-    Veo cannot render text correctly. Branding (logo, name, CTA) is added
-    automatically as post-processing overlays via the branding parameters.
+    Veo cannot render text correctly. Branding is built INTO the video automatically:
+    - Motion Graphics (no image_path): A branded starting frame is generated via
+      Gemini image gen (logo + company name + brand colors), then animated by Veo.
+    - Video from Image (with image_path): Logo + company name are composited onto
+      the product image, then animated by Veo.
 
     Args:
         prompt: Detailed cinematic video description (50-175 words). Include
@@ -41,10 +44,13 @@ def generate_video(
         duration_seconds: Video duration (5-8).
         aspect_ratio: Video aspect ratio ("9:16" for reels, "16:9" for landscape).
         negative_prompt: Elements to exclude (e.g. "blurry, low quality, distorted").
-        logo_path: Path to brand logo for watermark overlay (post-processing).
-        brand_name: Company name for text overlay (post-processing).
+        logo_path: Path to brand logo — composited onto starting frame or used
+            to generate branded frame (motion graphics). Also passed as Veo
+            reference image for consistency throughout the video.
+        brand_name: Company name — rendered on starting frame + guides visual
+            identity in the Veo prompt.
         brand_colors: JSON list of hex colors (e.g. '["#FF6B35", "#2EC4B6"]').
-        cta_text: Call-to-action text overlay (e.g. "Shop Now").
+        cta_text: Call-to-action context (e.g. "Shop Now") — guides visual tone.
     """
     colors_list = []
     if brand_colors:

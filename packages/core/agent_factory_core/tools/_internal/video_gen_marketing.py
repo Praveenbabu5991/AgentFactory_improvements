@@ -22,13 +22,6 @@ from google.genai import types
 from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
 
-# Try to import moviepy for video post-processing
-try:
-    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, TextClip
-    MOVIEPY_AVAILABLE = True
-except ImportError:
-    MOVIEPY_AVAILABLE = False
-
 load_dotenv()
 
 
@@ -71,111 +64,6 @@ def _format_error(error: Exception, context: str = "") -> dict:
     }
 
 
-def _get_available_font():
-    """Get an available system font for text rendering."""
-    if not MOVIEPY_AVAILABLE:
-        return None
-
-    font_options = [
-        "Arial-Bold", "Arial", "Helvetica-Bold", "Helvetica",
-        "DejaVu-Sans-Bold", "DejaVu-Sans", "Liberation-Sans-Bold", "Liberation-Sans",
-    ]
-
-    for font in font_options:
-        try:
-            test = TextClip(text="test", font=font, font_size=20)
-            test.close()
-            return font
-        except Exception:
-            continue
-
-    return None
-
-
-def _add_branding_to_video(
-    video_path: str,
-    logo_path: Optional[str] = None,
-    brand_name: Optional[str] = None,
-    cta_text: Optional[str] = None,
-    brand_colors: Optional[list] = None
-) -> str:
-    """Add logo watermark and brand text overlay to a video."""
-    if not MOVIEPY_AVAILABLE:
-        return video_path
-
-    try:
-        resolved_logo = None
-        if logo_path:
-            if os.path.exists(logo_path):
-                resolved_logo = logo_path
-            elif logo_path.startswith("/"):
-                resolved_logo = str(Path.cwd() / logo_path.lstrip("/"))
-            else:
-                resolved_logo = str(Path.cwd() / logo_path)
-            if not os.path.exists(resolved_logo):
-                resolved_logo = None
-
-        video = VideoFileClip(video_path)
-        video_width, video_height = video.size
-        clips = [video]
-
-        if resolved_logo:
-            try:
-                logo = ImageClip(resolved_logo)
-                logo_scale = (video_width * 0.15) / logo.size[0]
-                logo = logo.resized(logo_scale)
-                logo_x = video_width - logo.size[0] - 20
-                logo = logo.with_opacity(0.85).with_position((logo_x, 20)).with_duration(video.duration)
-                clips.append(logo)
-            except Exception:
-                pass
-
-        available_font = _get_available_font()
-
-        if brand_name:
-            try:
-                text_color = brand_colors[0] if brand_colors else "#FFFFFF"
-                brand_text = TextClip(
-                    text=brand_name, font_size=int(video_height * 0.04),
-                    color=text_color, font=available_font,
-                    stroke_color="black", stroke_width=1
-                )
-                brand_text = brand_text.with_position((20, video_height - 80)).with_duration(video.duration)
-                clips.append(brand_text)
-            except Exception:
-                pass
-
-        if cta_text and video.duration > 3:
-            try:
-                cta_color = brand_colors[0] if brand_colors else "#FF6B35"
-                cta = TextClip(
-                    text=cta_text, font_size=int(video_height * 0.05),
-                    color=cta_color, font=available_font,
-                    stroke_color="black", stroke_width=1
-                )
-                cta_x = (video_width - cta.size[0]) // 2
-                cta = cta.with_position((cta_x, video_height - 150)).with_start(video.duration - 3).with_duration(3)
-                clips.append(cta)
-            except Exception:
-                pass
-
-        if len(clips) > 1:
-            final_video = CompositeVideoClip(clips)
-            output_path = video_path.replace(".mp4", "_branded.mp4")
-            final_video.write_videofile(
-                output_path, codec="libx264",
-                audio_codec="aac" if video.audio else None,
-                fps=video.fps, logger=None
-            )
-            video.close()
-            final_video.close()
-            return output_path
-        else:
-            video.close()
-            return video_path
-
-    except Exception:
-        return video_path
 
 
 def _resolve_image_path(image_path: str) -> str:
@@ -188,6 +76,117 @@ def _resolve_image_path(image_path: str) -> str:
         resolved_path = str(Path.cwd() / image_path)
 
     return resolved_path
+
+
+def _get_text_font(size: int):
+    """Get a TrueType font for text rendering, with fallback."""
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ]
+    for path in font_paths:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def _generate_branded_frame(
+    prompt: str,
+    logo_path: str,
+    brand_name: str,
+    brand_colors: list[str] = [],
+    cta_text: str = "",
+    aspect_ratio: str = "9:16",
+    output_dir: str = "generated",
+) -> Optional[str]:
+    """Generate a branded video starting frame using Gemini image+text gen.
+
+    Uses image+text to image: passes the actual logo image + text prompt
+    to Gemini so it incorporates the real logo faithfully.
+
+    The branded frame includes: logo, company name, CTA text, and brand colors.
+
+    Returns path to generated image, or None on failure.
+    """
+    client = _get_client()
+    image_model = os.getenv("IMAGE_MODEL", "gemini-3-pro-image-preview")
+
+    color_info = f"Use these brand colors prominently: {', '.join(brand_colors[:3])}." if brand_colors else ""
+
+    orientation = "vertical (9:16 portrait)" if "9:16" in aspect_ratio else "horizontal (16:9 landscape)" if "16:9" in aspect_ratio else "square (1:1)"
+
+    cta_instruction = f'- Display the call-to-action text "{cta_text}" ONCE — large, bold, eye-catching, centered in the lower-third area above the logo' if cta_text else ""
+
+    frame_prompt = f"""Create a premium branded video starting frame / marketing poster image.
+
+I am providing the brand logo image below. Use THIS EXACT logo in the image.
+
+BRAND: {brand_name}
+{color_info}
+
+SCENE CONCEPT (for the video this frame opens):
+{prompt}
+
+REQUIREMENTS:
+- Place the PROVIDED logo image in the bottom-right corner — keep it exactly as provided, subtle but visible
+- Show the company name "{brand_name}" near the logo, clearly readable
+{cta_instruction}
+- {color_info or "Use professional, cinematic colors"}
+- This is the OPENING FRAME of a marketing video — make it visually striking and cinematic
+- Orientation: {orientation}
+- Ultra high quality, suitable for social media marketing
+- The scene should set up the video's story/mood
+
+Create a scroll-stopping, cinematic branded image that works as a video opening frame."""
+
+    # Image+text mode: pass logo image alongside the text prompt
+    contents = []
+    resolved_logo = _resolve_image_path(logo_path)
+    if os.path.exists(resolved_logo):
+        try:
+            logo_image = Image.open(resolved_logo)
+            contents.append("Here is the brand logo to include in the image:")
+            contents.append(logo_image)
+            contents.append(frame_prompt)
+            print(f"  + Logo image provided to Gemini (image+text mode)", flush=True)
+        except Exception as e:
+            print(f"  ⚠️ Could not load logo: {e} — falling back to text-only", flush=True)
+            contents = [frame_prompt]
+    else:
+        contents = [frame_prompt]
+
+    try:
+        print(f"  🎨 Calling Gemini image gen ({image_model}) for branded frame...", flush=True)
+        response = client.models.generate_content(
+            model=image_model,
+            contents=contents,
+            config=types.GenerateContentConfig(response_modalities=["image", "text"]),
+        )
+
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        for part in response.candidates[0].content.parts:
+            if part.inline_data is not None:
+                video_id = str(uuid.uuid4())[:8]
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"branded_frame_{timestamp}_{video_id}.png"
+                frame_path = output_path / filename
+
+                with open(frame_path, "wb") as f:
+                    f.write(part.inline_data.data)
+
+                print(f"  ✅ Branded frame generated: {frame_path}", flush=True)
+                return str(frame_path)
+
+        print(f"  ⚠️ Gemini returned no image for branded frame", flush=True)
+        return None
+    except Exception as e:
+        print(f"  ⚠️ Branded frame generation failed: {e}", flush=True)
+        return None
 
 
 def generate_animated_product_video(
@@ -291,15 +290,6 @@ def generate_animated_product_video(
 
             final_video_path = str(video_path)
             brand_name = brand_context.get("name") if brand_context else None
-            brand_colors = brand_context.get("colors") if brand_context else None
-            resolved_logo = logo_path or (brand_context.get("logo_path") if brand_context else None)
-
-            if resolved_logo or brand_name or cta_text:
-                final_video_path = _add_branding_to_video(
-                    video_path=str(video_path), logo_path=resolved_logo, brand_name=brand_name,
-                    cta_text=cta_text or (f"Book with {brand_name}" if brand_name else None),
-                    brand_colors=brand_colors
-                )
 
             final_filename = Path(final_video_path).name
             return {
@@ -307,7 +297,7 @@ def generate_animated_product_video(
                 "url": f"/generated/{final_filename}", "product_name": product_name,
                 "animation_style": animation_style, "duration_seconds": duration_seconds,
                 "source_image": product_image_path, "aspect_ratio": aspect_ratio,
-                "model": video_model, "type": "product_video", "branded": bool(resolved_logo or brand_name)
+                "model": video_model, "type": "product_video", "branded": bool(logo_path or brand_name)
             }
 
         except Exception as model_error:
@@ -413,15 +403,6 @@ def generate_motion_graphics_video(
             video.video.save(str(video_path))
 
             final_video_path = str(video_path)
-            brand_name = brand_context.get("name") if brand_context else None
-            brand_colors = brand_context.get("colors") if brand_context else None
-            logo_path = brand_context.get("logo_path") if brand_context else None
-
-            if logo_path or brand_name:
-                final_video_path = _add_branding_to_video(
-                    video_path=str(video_path), logo_path=logo_path, brand_name=brand_name,
-                    cta_text=f"Visit {brand_name}.com" if brand_name else None, brand_colors=brand_colors
-                )
 
             final_filename = Path(final_video_path).name
             return {
@@ -500,9 +481,10 @@ def generate_video(
     [Camera + lens] + [Subject] + [Action] + [Setting + atmosphere] + [Style + Audio].
 
     IMPORTANT: Do NOT include text/titles/company name in the Veo prompt — Veo
-    cannot render text correctly. Branding (logo, company name, CTA) is added
-    automatically as MoviePy post-processing overlays when you pass the branding
-    parameters below.
+    cannot render text correctly. Branding is incorporated directly:
+    - Logo is passed as a Veo reference image (text-to-video) or composited onto
+      the source image via PIL (image-to-video).
+    - Brand name and colors are appended to the prompt to guide visual identity.
 
     Args:
         prompt: The complete video generation prompt (50-175 words). Must include:
@@ -519,22 +501,24 @@ def generate_video(
         output_dir: Directory to save the generated video.
         negative_prompt: Elements to exclude (e.g. "blurry, low quality, distorted").
             Text-related negatives are always added automatically.
-        logo_path: Path to brand logo for watermark overlay (MoviePy post-processing).
-        brand_name: Company name for text overlay (MoviePy post-processing).
-        brand_colors: List of hex colors for brand text styling.
-        cta_text: Call-to-action text overlay (e.g. "Shop Now", "Visit us").
+        logo_path: Path to brand logo — auto-sent as Veo reference image
+            (text-to-video) or composited onto source image (image-to-video).
+        brand_name: Company name — guides visual brand identity in the prompt.
+        brand_colors: List of hex colors to guide visual palette in the prompt.
+        cta_text: Call-to-action context (e.g. "Shop Now") — guides visual tone.
 
     Returns:
         Dictionary with video path, URL, and metadata on success.
         Dictionary with error info on failure.
     """
-    print(f"\n{'='*60}")
-    print(f"🎬 GENERATE VIDEO")
-    print(f"  Prompt: {prompt[:200]}...")
-    print(f"  Image: {image_path or 'None (text-to-video)'}")
-    print(f"  References: {reference_image_paths or 'None'}")
-    print(f"  Duration: {duration_seconds}s | Aspect: {aspect_ratio}")
-    print(f"{'='*60}\n")
+    print(f"\n{'='*60}", flush=True)
+    print(f"🎬 GENERATE VIDEO", flush=True)
+    print(f"  Prompt: {prompt}", flush=True)
+    print(f"  Image: {image_path or 'None (text-to-video)'}", flush=True)
+    print(f"  References: {reference_image_paths or 'None'}", flush=True)
+    print(f"  Duration: {duration_seconds}s | Aspect: {aspect_ratio}", flush=True)
+    print(f"  Branding: logo={logo_path or 'None'}, name={brand_name or 'None'}, colors={brand_colors or 'None'}, cta={cta_text or 'None'}", flush=True)
+    print(f"{'='*60}\n", flush=True)
 
     try:
         client = _get_client()
@@ -556,101 +540,200 @@ def generate_video(
         else:
             config_kwargs["negative_prompt"] = base_negatives
 
-        # Handle reference images (only for text-to-video; Veo API does NOT
-        # support reference_images + image together in image-to-video mode)
-        if reference_image_paths and not image_path:
-            ref_images = []
-            for ref_path in reference_image_paths:
-                resolved = _resolve_image_path(ref_path)
-                if os.path.exists(resolved):
-                    try:
-                        ref_img = Image.open(resolved)
-                        if ref_img.mode in ('RGBA', 'LA', 'P'):
-                            ref_img = ref_img.convert('RGB')
-                        buf = io.BytesIO()
-                        ref_img.save(buf, format='JPEG')
-                        ref_image_obj = types.Image(
-                            image_bytes=buf.getvalue(), mime_type="image/jpeg"
-                        )
-                        ref_images.append(
-                            types.VideoGenerationReferenceImage(
-                                image=ref_image_obj, reference_type="asset"
-                            )
-                        )
-                        print(f"  ✅ Loaded reference image: {ref_path}")
-                    except Exception as e:
-                        print(f"  ⚠️ Could not load reference image {ref_path}: {e}")
-                else:
-                    print(f"  ⚠️ Reference image not found: {resolved}")
-            if ref_images:
-                config_kwargs["reference_images"] = ref_images
-        elif reference_image_paths and image_path:
-            print(f"  ℹ️ Skipping reference images (not supported with image-to-video mode)")
+        # Enhance prompt with brand identity
+        enhanced_prompt = prompt
+        if brand_name:
+            brand_suffix = f"\nBrand identity: This video is for {brand_name}."
+            if brand_colors:
+                brand_suffix += f" Brand color palette: {', '.join(str(c) for c in brand_colors[:3])}."
+            enhanced_prompt = prompt.rstrip() + brand_suffix
+            print(f"  + Enhanced prompt with brand identity for: {brand_name}", flush=True)
 
-        video_config = types.GenerateVideosConfig(**config_kwargs)
+        # ----------------------------------------------------------------
+        # Veo 3.1 supports TWO mutually exclusive modes:
+        #   A) text-to-video  + reference_images (up to 3 asset images)
+        #   B) image-to-video + image= (starting frame, NO reference_images)
+        # They CANNOT be combined. We pick the right mode based on inputs.
+        # ----------------------------------------------------------------
 
-        # Build generate_videos kwargs
-        gen_kwargs = {
-            "model": video_model,
-            "prompt": prompt,
-            "config": video_config,
-        }
+        if not image_path and logo_path and brand_name:
+            # ── MODE A: MOTION GRAPHICS (text-to-video + reference images) ──
+            # Step 1: Generate a branded starting frame via Gemini image gen
+            # Step 2: Pass branded frame + logo as reference_images to Veo
+            #         (text-to-video, NOT image-to-video)
+            print(f"  🎨 Generating branded starting frame for Motion Graphics...", flush=True)
+            branded_frame_path = _generate_branded_frame(
+                prompt=prompt,
+                logo_path=logo_path,
+                brand_name=brand_name,
+                brand_colors=brand_colors,
+                cta_text=cta_text,
+                aspect_ratio=aspect_ratio,
+                output_dir=output_dir,
+            )
 
-        # Handle starting image (image-to-video mode)
-        if image_path:
+            ref_images_list = []
+
+            # Add branded frame as reference image
+            if branded_frame_path and os.path.exists(branded_frame_path):
+                try:
+                    frame_img = Image.open(branded_frame_path)
+                    if frame_img.mode in ('RGBA', 'LA', 'P'):
+                        frame_img = frame_img.convert('RGB')
+                    buf = io.BytesIO()
+                    frame_img.save(buf, format='JPEG')
+                    ref_images_list.append(types.VideoGenerationReferenceImage(
+                        image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
+                        reference_type="asset"
+                    ))
+                    print(f"  ✅ Branded frame added as reference image", flush=True)
+                except Exception as e:
+                    print(f"  ⚠️ Could not load branded frame as reference: {e}", flush=True)
+
+            # Add logo as another reference image
+            resolved_logo = _resolve_image_path(logo_path)
+            if os.path.exists(resolved_logo):
+                try:
+                    logo_img = Image.open(resolved_logo)
+                    if logo_img.mode in ('RGBA', 'LA', 'P'):
+                        logo_img = logo_img.convert('RGB')
+                    buf = io.BytesIO()
+                    logo_img.save(buf, format='JPEG')
+                    ref_images_list.append(types.VideoGenerationReferenceImage(
+                        image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
+                        reference_type="asset"
+                    ))
+                    print(f"  ✅ Logo added as reference image", flush=True)
+                except Exception as e:
+                    print(f"  ⚠️ Could not load logo as reference: {e}", flush=True)
+
+            # Add any explicit user-provided reference images (up to 3 total)
+            if reference_image_paths:
+                for ref_path in reference_image_paths:
+                    if len(ref_images_list) >= 3:
+                        break
+                    resolved = _resolve_image_path(ref_path)
+                    if os.path.exists(resolved) and resolved != resolved_logo:
+                        try:
+                            ref_img = Image.open(resolved)
+                            if ref_img.mode in ('RGBA', 'LA', 'P'):
+                                ref_img = ref_img.convert('RGB')
+                            buf = io.BytesIO()
+                            ref_img.save(buf, format='JPEG')
+                            ref_images_list.append(types.VideoGenerationReferenceImage(
+                                image=types.Image(image_bytes=buf.getvalue(), mime_type="image/jpeg"),
+                                reference_type="asset"
+                            ))
+                            print(f"  ✅ Loaded reference image: {ref_path}", flush=True)
+                        except Exception as e:
+                            print(f"  ⚠️ Could not load reference image {ref_path}: {e}", flush=True)
+
+            if ref_images_list:
+                config_kwargs["reference_images"] = ref_images_list
+                # Veo doesn't support negative_prompt with reference_images
+                if "negative_prompt" in config_kwargs:
+                    neg = config_kwargs.pop("negative_prompt")
+                    enhanced_prompt = enhanced_prompt.rstrip() + f"\nAvoid: {neg}."
+                    print(f"  ℹ️ Moved negative_prompt into prompt text (required with reference images)", flush=True)
+
+            print(f"  📎 Mode: text-to-video with {len(ref_images_list)} reference image(s)", flush=True)
+
+            video_config = types.GenerateVideosConfig(**config_kwargs)
+            gen_kwargs = {
+                "model": video_model,
+                "prompt": enhanced_prompt,
+                "config": video_config,
+            }
+            # NO image= — this is text-to-video with reference images
+
+        elif image_path:
+            # ── MODE B: VIDEO FROM IMAGE (image-to-video, NO reference_images) ──
+            # Composite logo + company name onto product image, then use as image=
+            video_config = types.GenerateVideosConfig(**config_kwargs)
+            gen_kwargs = {
+                "model": video_model,
+                "prompt": enhanced_prompt,
+                "config": video_config,
+            }
+
             resolved_img = _resolve_image_path(image_path)
             if os.path.exists(resolved_img):
                 try:
                     source_image = Image.open(resolved_img)
                     if source_image.mode in ('RGBA', 'LA', 'P'):
                         source_image = source_image.convert('RGB')
-                    print(f"  ✅ Loaded starting image: {image_path} ({source_image.size})")
+                    print(f"  ✅ Loaded starting image: {image_path} ({source_image.size})", flush=True)
 
-                    # Composite logo onto image if reference_image_paths has a logo
-                    if reference_image_paths:
-                        for ref_path in reference_image_paths:
-                            resolved_logo = _resolve_image_path(ref_path)
-                            if os.path.exists(resolved_logo):
-                                try:
-                                    logo_img = Image.open(resolved_logo)
-                                    # Resize logo to ~15% of image width
-                                    img_w, img_h = source_image.size
-                                    logo_target_w = int(img_w * 0.15)
-                                    logo_w, logo_h = logo_img.size
-                                    logo_scale = logo_target_w / logo_w
-                                    logo_new_size = (logo_target_w, int(logo_h * logo_scale))
-                                    logo_resized = logo_img.resize(logo_new_size, Image.LANCZOS)
+                    # Composite logo + company name onto product image
+                    if logo_path:
+                        resolved_logo = _resolve_image_path(logo_path)
+                        if os.path.exists(resolved_logo):
+                            try:
+                                img_w, img_h = source_image.size
+                                logo_img = Image.open(resolved_logo)
 
-                                    # Position: top-right corner with padding
-                                    padding = int(img_w * 0.03)
-                                    x = img_w - logo_new_size[0] - padding
-                                    y = padding
+                                # Resize logo to ~15% of image width
+                                logo_target_w = int(img_w * 0.15)
+                                logo_w, logo_h = logo_img.size
+                                logo_scale = logo_target_w / logo_w
+                                logo_new_size = (logo_target_w, int(logo_h * logo_scale))
+                                logo_resized = logo_img.resize(logo_new_size, Image.LANCZOS)
 
-                                    # Paste with transparency if logo has alpha
-                                    if logo_resized.mode == 'RGBA':
-                                        source_image.paste(logo_resized, (x, y), logo_resized)
-                                    else:
-                                        source_image.paste(logo_resized, (x, y))
-                                    print(f"  ✅ Composited logo onto image: {ref_path} ({logo_new_size})")
-                                except Exception as logo_err:
-                                    print(f"  ⚠️ Could not composite logo {ref_path}: {logo_err}")
+                                # Position: top-right corner with padding
+                                padding = int(img_w * 0.03)
+                                x = img_w - logo_new_size[0] - padding
+                                y = padding
+
+                                if logo_resized.mode == 'RGBA':
+                                    source_image.paste(logo_resized, (x, y), logo_resized)
+                                else:
+                                    source_image.paste(logo_resized, (x, y))
+                                print(f"  ✅ Composited logo onto image: ({logo_new_size})", flush=True)
+
+                                # Add company name text below logo
+                                if brand_name:
+                                    draw = ImageDraw.Draw(source_image)
+                                    font_size = max(12, int(img_w * 0.025))
+                                    font = _get_text_font(font_size)
+
+                                    text_x = x + logo_new_size[0] // 2
+                                    text_y = y + logo_new_size[1] + int(padding * 0.3)
+
+                                    # Shadow for readability
+                                    draw.text((text_x + 1, text_y + 1), brand_name,
+                                              fill="#000000", font=font, anchor="mt")
+                                    draw.text((text_x, text_y), brand_name,
+                                              fill="#FFFFFF", font=font, anchor="mt")
+                                    print(f"  ✅ Added company name '{brand_name}' below logo", flush=True)
+                            except Exception as logo_err:
+                                print(f"  ⚠️ Could not composite branding: {logo_err}", flush=True)
 
                     buf = io.BytesIO()
                     source_image.save(buf, format='JPEG')
                     gen_kwargs["image"] = types.Image(
                         image_bytes=buf.getvalue(), mime_type="image/jpeg"
                     )
-                    print(f"  ✅ Using composited image for Veo")
+                    print(f"  📎 Mode: image-to-video (branded product image)", flush=True)
                 except Exception as e:
-                    print(f"  ⚠️ Could not load starting image {image_path}: {e}")
+                    print(f"  ⚠️ Could not load starting image {image_path}: {e}", flush=True)
             else:
-                print(f"  ⚠️ Starting image not found: {resolved_img}")
+                print(f"  ⚠️ Starting image not found: {resolved_img}", flush=True)
 
-        # Generate video
-        print(f"  🚀 Calling Veo 3.1 ({video_model})...")
+        else:
+            # ── MODE C: Plain text-to-video (no branding images available) ──
+            video_config = types.GenerateVideosConfig(**config_kwargs)
+            gen_kwargs = {
+                "model": video_model,
+                "prompt": enhanced_prompt,
+                "config": video_config,
+            }
+            print(f"  📎 Mode: plain text-to-video (no branding images)", flush=True)
+
+        # --- Generate video ---
+        print(f"  🚀 Calling Veo 3.1 ({video_model})...", flush=True)
+        operation = client.models.generate_videos(**gen_kwargs)
+
         try:
-            operation = client.models.generate_videos(**gen_kwargs)
-
             max_wait_time = 300
             while not operation.done:
                 time.sleep(10)
@@ -688,18 +771,7 @@ def generate_video(
 
             print(f"  ✅ Video saved: {video_path} ({video_path.stat().st_size:,} bytes, ~{clamped_duration}s)")
 
-            # Post-process: add branding overlays via MoviePy
             final_video_path = str(video_path)
-            if logo_path or brand_name or cta_text:
-                final_video_path = _add_branding_to_video(
-                    video_path=str(video_path),
-                    logo_path=logo_path or None,
-                    brand_name=brand_name or None,
-                    cta_text=cta_text or None,
-                    brand_colors=brand_colors or None,
-                )
-                if final_video_path != str(video_path):
-                    print(f"  ✅ Branding overlays applied: {final_video_path}")
 
             final_filename = Path(final_video_path).name
             file_size = Path(final_video_path).stat().st_size

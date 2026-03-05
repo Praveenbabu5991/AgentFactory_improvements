@@ -69,7 +69,7 @@ async def chat_stream(request: ChatRequest):
     session_id = request.session_id or str(uuid.uuid4())
     message_text = build_message_text(request)
 
-    config = {"configurable": {"thread_id": session_id}}
+    config = {"configurable": {"thread_id": session_id}, "recursion_limit": 1000}
     input_data = {
         "messages": [{"role": "user", "content": message_text}],
     }

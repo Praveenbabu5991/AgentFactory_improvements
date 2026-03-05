@@ -5,6 +5,7 @@ Each SubAgent TypedDict replaces a Google ADK LlmAgent.
 
 from deepagents import SubAgent
 
+from agent_factory_core.middleware.brand_context import BrandContextMiddleware
 from agent_factory_core.tools.content import (
     generate_hashtags,
     improve_caption,
@@ -30,6 +31,7 @@ VIDEO_AGENT: SubAgent = {
     "name": "video-agent",
     "description": "Creates branded story videos: suggests ideas based on brand context, generates 8-second videos with company name and logo, provides captions and hashtags.",
     "system_prompt": VIDEO_AGENT_PROMPT,
+    "middleware": [BrandContextMiddleware()],
     "tools": [
         generate_video,
         generate_marketing_product_video,
@@ -44,6 +46,7 @@ ANIMATION_AGENT: SubAgent = {
     "name": "animation-agent",
     "description": "Transforms static images into animated videos/cinemagraphs using Veo 3.1 with audio support. Maintains company branding.",
     "system_prompt": ANIMATION_AGENT_PROMPT,
+    "middleware": [BrandContextMiddleware()],
     "tools": [
         generate_video,
         animate_marketing_image,
@@ -56,6 +59,7 @@ CAPTION_AGENT: SubAgent = {
     "name": "caption-agent",
     "description": "Creates scroll-stopping captions and strategic hashtag sets for video content.",
     "system_prompt": CAPTION_AGENT_PROMPT,
+    "middleware": [BrandContextMiddleware()],
     "tools": [
         write_caption,
         generate_hashtags,
