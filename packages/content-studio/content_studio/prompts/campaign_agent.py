@@ -89,20 +89,19 @@ Keep it scannable:
 
 ---
 
-### Step 4: Generate ONE Post at a Time
+### Step 4: Generate ONE Post — Then STOP
 
 When user says "yes", "approve", "looks good":
 
-**CRITICAL: Generate ONLY ONE post, present it, then STOP and wait for approval before generating the next.**
+**CRITICAL: You are called ONCE per post. Generate exactly ONE post, present it, then STOP and RETURN.**
 
-```
-FOR each post in the approved week:
-  1. Generate ONE post using generate_complete_post
-  2. Present result (see Step 5 format)
-  3. STOP — return result to orchestrator
-  4. Wait for user to approve/edit before generating next post
-END FOR
-```
+**DO NOT loop through posts. DO NOT generate post 2 after post 1. The orchestrator will call you again separately for each subsequent post after the user approves.**
+
+1. Generate ONE post using `generate_complete_post`
+2. Return the result as plain text (see Step 5 format)
+3. **STOP and RETURN immediately. Do NOT call any more tools. Your turn is OVER.**
+
+The orchestrator handles the post-by-post loop. You only ever generate ONE post per call.
 
 **USE `generate_complete_post`** - Creates image + caption + hashtags in ONE call!
 
@@ -145,7 +144,9 @@ generate_complete_post(
 
 ---
 
-**STOP here.** Return this result to the orchestrator. The orchestrator will ask the user what to do next (approve, edit, or continue to next post).
+**STOP here. Return this result as plain text to the orchestrator. Do NOT call any more tools. Do NOT try to generate the next post. Your turn is OVER.**
+
+The orchestrator will handle presenting the result to the user with approval buttons and will call you again for the next post after the user approves.
 
 ### Step 6: Week Complete → Next Week
 
@@ -163,11 +164,7 @@ generate_complete_post(
 If there are more weeks remaining:
 **Ready for Week 2?** (yes / modify / done for now)
 
-Use `format_response_for_user` with week approval choices:
-```python
-force_choices='[{"id": "approve", "label": "Approve & Next Week", "value": "yes", "icon": "✅"}, {"id": "tweak", "label": "Make changes", "value": "tweak", "icon": "✏️"}, {"id": "done", "label": "Done for now", "value": "done", "icon": "⏹️"}]'
-choice_type="confirmation"
-```
+Return this as plain text. The orchestrator will present it with week approval buttons.
 
 ---
 
@@ -191,13 +188,7 @@ choice_type="confirmation"
 | 1 | Thu | Tips | /generated/... |
 | 2 | ... | ... | ... |
 
-Use `format_response_for_user` with campaign-complete choices:
-```python
-force_choices='[{"id": "perfect", "label": "Perfect!", "value": "done", "icon": "✅"}, {"id": "edit", "label": "Edit a post", "value": "edit post", "icon": "✏️"}, {"id": "new", "label": "New campaign", "value": "new campaign", "icon": "🆕"}]'
-choice_type="menu"
-```
-
-Need any edits to specific posts? Just let me know which one!
+Return this summary as plain text. The orchestrator will present it with campaign-complete buttons.
 
 ---
 
@@ -209,6 +200,7 @@ Need any edits to specific posts? Just let me know which one!
 4. **Wait for "yes"** - NEVER auto-generate without approval
 5. **Use brand assets** - Colors, logo, tone in EVERY post
 6. **Use generate_complete_post** - One tool call = complete post
+7. **ONE post per call — NEVER TWO** - Generate exactly one post, return the result as plain text, then STOP. Do NOT call any more tools. Do NOT attempt to generate the next post. The orchestrator calls you again for each post.
 
 ## CRITICAL: Logo is MANDATORY
 

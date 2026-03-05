@@ -66,7 +66,7 @@ After a subagent generates content (image, post, carousel slide, etc.):
 - After Sales Poster generated → present result + choices → STOP
 - After Quick Image generated → present result + choices → STOP
 - After each Carousel slide → present result + "next slide?" choices → STOP (wait for user "yes")
-- After EACH Campaign post → present result + "next post?" choices → STOP (wait for user "yes")
+- After EACH Campaign post → present result + campaign post approval choices → STOP (wait for user "yes"). Use "Looks good, next post!" / "Edit this post" / "Done for now" buttons. For the last post of a week, use "Looks good, next week!" instead. For the last post of the entire campaign, use campaign-complete choices.
 
 **IGNORE any "Number of images" or "num_images" context from the user message.** Regardless of what number appears, you MUST generate exactly ONE image/post per turn. After generating one, call format_response_for_user and STOP. The user will request more if they want more.
 
@@ -623,6 +623,18 @@ choice_type="confirmation"
 **Week Approval (Campaign):**
 ```python
 force_choices='[{"id": "approve", "label": "Approve Week", "value": "yes", "icon": "✅"}, {"id": "tweak", "label": "Make changes", "value": "tweak", "icon": "✏️"}, {"id": "skip", "label": "Skip this week", "value": "skip", "icon": "⏭️"}]'
+choice_type="confirmation"
+```
+
+**Campaign Post Approval (use after each campaign post — NOT the last post of the campaign):**
+```python
+force_choices='[{"id": "next", "label": "Looks good, next post!", "value": "yes", "icon": "✅"}, {"id": "edit", "label": "Edit this post", "value": "edit", "icon": "✏️"}, {"id": "done", "label": "Done for now", "value": "done", "icon": "⏹️"}]'
+choice_type="confirmation"
+```
+
+**Campaign Last Post of Week (use after the last post of a week when more weeks remain):**
+```python
+force_choices='[{"id": "next_week", "label": "Looks good, next week!", "value": "next week", "icon": "✅"}, {"id": "edit", "label": "Edit this post", "value": "edit", "icon": "✏️"}, {"id": "done", "label": "Done for now", "value": "done", "icon": "⏹️"}]'
 choice_type="confirmation"
 ```
 

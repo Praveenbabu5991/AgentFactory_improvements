@@ -25,13 +25,20 @@ def reset_generation_counter():
 
 
 def _check_and_block() -> str | None:
-    """Return cached result if an image was already generated this request, else None."""
+    """Return error-like STOP signal if an image was already generated this request, else None."""
+    global _generation_call_count
     if _generation_call_count >= 1 and _generation_last_result:
-        print("   ⛔ BLOCKED: Image generation already called in this request. Returning previous result.", flush=True)
+        _generation_call_count += 1  # Track how many times the LLM retried
+        attempt = _generation_call_count
+        print(f"   ⛔ BLOCKED (attempt {attempt}): Image generation already called in this request.", flush=True)
         return json.dumps({
-            "status": "already_generated",
-            "message": "STOP. An image was already generated in this turn. Do NOT call any more image generation tools. Present the previously generated result to the user and STOP immediately. Wait for the user's next message before generating anything else.",
-            "previous_result": json.loads(_generation_last_result),
+            "status": "error",
+            "error": True,
+            "message": f"GENERATION BLOCKED (attempt {attempt}). Only ONE image can be generated per user message. "
+                       f"You already generated an image successfully in this turn. "
+                       f"Do NOT call generate_complete_post, generate_post_image, or any image generation tool again — they will ALL fail. "
+                       f"STOP calling tools immediately. Return your result as plain text now. "
+                       f"Your turn is OVER. The user must send a new message before another image can be generated.",
         })
     return None
 
